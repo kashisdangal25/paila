@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Menu, Home, Compass, Map, Heart, Users, Bell, Settings, User, BookOpen, Calendar } from 'lucide-react';
+import { Shield, Menu, Home, Compass, Map, Heart, Users, Bell, Settings, User, BookOpen, Journal } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { useI18n } from '../lib/i18n';
 import { useTheme, useThemeColors } from '../lib/ThemeContext';
@@ -15,6 +15,7 @@ import { CommunityTab } from './tabs/CommunityTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
 import { ProfileTab } from './tabs/ProfileTab';
 import { SettingsTab } from './tabs/SettingsTab';
+import { JournalTab } from './tabs/JournalTab';
 import { AdminDashboard } from './AdminDashboard';
 import { supabase } from '../lib/supabase';
 
@@ -81,6 +82,8 @@ export default function Dashboard({ showToast }: DashboardProps) {
         return <MapTab />;
       case 'planner':
         return <PlannerTab />;
+      case 'journal':
+        return <JournalTab />;
       case 'stories':
         return <StoriesTab />;
       case 'saved':
@@ -224,6 +227,7 @@ export default function Dashboard({ showToast }: DashboardProps) {
                   { id: 'discover', icon: Compass },
                   { id: 'map', icon: Map },
                   { id: 'planner', icon: Calendar },
+                  { id: 'journal', icon: BookOpen },
                   { id: 'stories', icon: BookOpen },
                   { id: 'saved', icon: Heart },
                   { id: 'community', icon: Users },

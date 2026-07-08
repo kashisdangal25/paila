@@ -8,8 +8,42 @@ import { useThemeColors } from '../../lib/ThemeContext';
 import { useSaved } from '../../lib/useSaved';
 import { cn } from '../../lib/utils';
 import { DestinationDetail } from './DestinationDetail';
+import { getPlaceImage } from '../../lib/imageUtils';
 
 const categories = ['All', 'Trekking', 'Hiking', 'Lake', 'Wildlife', 'Adventure', 'Cultural', 'Heritage', 'Nature', 'Pilgrimage'];
+
+// Helper component for async place images
+function PlaceImage({ place, className }: { place: any; className?: string }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadImage() {
+      const url = await getPlaceImage({
+        id: place.id,
+        name: place.name,
+        category: place.category,
+        image_url: place.image_url,
+        cached_image_url: place.cached_image_url
+      });
+      setImageUrl(url);
+    }
+    if (place) loadImage();
+  }, [place]);
+
+  if (!imageUrl) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-forest-600 to-forest-400 animate-pulse`} />
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={place.name}
+      className={className}
+    />
+  );
+}
 
 export function DiscoverTab() {
   const { t } = useI18n();
@@ -164,13 +198,10 @@ export function DiscoverTab() {
                 )}
               >
                 <div className="h-40 bg-gradient-to-br from-forest-600 to-forest-400 relative">
-                  {dest.image_url && (
-                    <img
-                      src={dest.image_url}
-                      alt={dest.name}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  )}
+                  <PlaceImage
+                    place={dest}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   <button
                     onClick={(e) => handleToggleSave('destination', dest.id, e)}

@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabase';
 
 // Types
 type BusinessType = 'guide' | 'homestay' | 'transport' | 'cafe' | 'hotel' | 'tour_operator' | 'rental' | 'other';
-type OnboardingStep = 'welcome' | 1 | 2 | 3 | 'success';
+type OnboardingStep = 1 | 2 | 3 | 'success';
 
 interface VendorData {
   businessType: BusinessType | '';
@@ -31,7 +31,6 @@ interface VendorData {
   whatsapp: string;
   paymentMethod: 'esewa' | 'khalti' | 'cash' | '';
   paymentId: string;
-  agreeToTerms: boolean;
 }
 
 const BUSINESS_TYPES: Array<{ id: BusinessType; icon: string; label: string }> = [
@@ -84,7 +83,7 @@ const initialData: VendorData = {
   whatsapp: '',
   paymentMethod: '',
   paymentId: '',
-  agreeToTerms: false,
+
 };
 
 interface VendorOnboardingProps {
@@ -94,7 +93,7 @@ interface VendorOnboardingProps {
 
 export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardingProps) {
   const { user, profile } = useAuth();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
   const [data, setData] = useState<VendorData>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,7 +141,6 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
       if (!data.phone.trim()) newErrors.phone = 'Phone number required';
     } else if (step === 3) {
       if (!data.paymentMethod) newErrors.paymentMethod = 'Select payment method';
-      if (!data.agreeToTerms) newErrors.agreeToTerms = 'You must accept the terms';
     }
 
     setErrors(newErrors);
@@ -152,9 +150,7 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
   const goNext = () => {
     saveProgress();
 
-    if (currentStep === 'welcome') {
-      setCurrentStep(1);
-    } else if (currentStep === 1 && validateStep(1)) {
+    if (currentStep === 1 && validateStep(1)) {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep(2)) {
       setCurrentStep(3);
@@ -164,8 +160,7 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
   };
 
   const goBack = () => {
-    if (currentStep === 1) setCurrentStep('welcome');
-    else if (currentStep === 2) setCurrentStep(1);
+    if (currentStep === 2) setCurrentStep(1);
     else if (currentStep === 3) setCurrentStep(2);
   };
 
@@ -214,48 +209,6 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
       setIsSubmitting(false);
     }
   };
-
-  // Welcome Screen
-  const renderWelcome = () => (
-    <div className="text-center animate-fade-in">
-      <div className="w-20 h-20 bg-forest-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <span className="text-4xl">🎉</span>
-      </div>
-      <h1 className="text-2xl font-display font-bold text-forest-700 mb-2">Welcome to Paila!</h1>
-      <p className="text-stone-500 mb-6">
-        Your business account is ready. Let's set up your listing in 2 minutes so travelers can find you.
-      </p>
-
-      <div className="bg-forest-50 rounded-xl p-4 mb-6 text-left">
-        <p className="text-sm font-semibold text-forest-700 mb-3">Quick setup (3 steps):</p>
-        <div className="space-y-2 text-sm text-forest-600">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 bg-forest-200 text-forest-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-            <span>Business type, name, price & location</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 bg-forest-200 text-forest-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-            <span>Photo, description & contact</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 bg-forest-200 text-forest-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-            <span>Payment method & go live!</span>
-          </div>
-        </div>
-      </div>
-
-      <button onClick={goNext} className="btn-primary w-full py-3.5 text-base">
-        Set Up My Business
-        <ArrowRight className="w-5 h-5 ml-2 inline" />
-      </button>
-
-      {onSkip && (
-        <button onClick={onSkip} className="text-sm text-stone-500 hover:text-forest-600 mt-4">
-          Skip for now → Dashboard
-        </button>
-      )}
-    </div>
-  );
 
   // Step 1: The Basics
   const renderStep1 = () => (
@@ -536,23 +489,6 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
         </div>
       )}
 
-      {/* Terms */}
-      <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer ${
-        errors.agreeToTerms ? 'border-red-300' : 'border-stone-200'
-      }`}>
-        <input
-          type="checkbox"
-          checked={data.agreeToTerms}
-          onChange={(e) => setData({ ...data, agreeToTerms: e.target.checked })}
-          className="mt-1 h-5 w-5 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
-        />
-        <span className="text-sm text-stone-600">
-          I agree to the <a href="#" className="text-forest-600 underline">Terms of Service</a> and{' '}
-          <a href="#" className="text-forest-600 underline">Privacy Policy</a>. I confirm this information is accurate.
-        </span>
-      </label>
-      {errors.agreeToTerms && <p className="text-xs text-red-500 mt-1">{errors.agreeToTerms}</p>}
-
       {/* Submit */}
       <div className="flex gap-3 mt-8">
         <button onClick={goBack} className="btn-secondary flex-1 py-3">
@@ -621,7 +557,6 @@ export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardin
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 'welcome': return renderWelcome();
       case 1: return renderStep1();
       case 2: return renderStep2();
       case 3: return renderStep3();

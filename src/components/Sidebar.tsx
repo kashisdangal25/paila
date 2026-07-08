@@ -18,6 +18,7 @@ const navItems = [
   { id: 'discover', icon: Compass, labelKey: 'nav.discover' },
   { id: 'map', icon: Map, labelKey: 'nav.map' },
   { id: 'planner', icon: Calendar, labelKey: 'nav.planner' },
+  { id: 'journal', icon: BookOpen, labelKey: 'nav.journal' },
   { id: 'stories', icon: BookOpen, labelKey: 'nav.stories' },
   { id: 'saved', icon: Heart, labelKey: 'nav.saved' },
   { id: 'community', icon: Users, labelKey: 'nav.community' },

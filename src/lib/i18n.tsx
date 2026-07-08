@@ -13,6 +13,7 @@ const translations: Record<Language, Translations> = {
       discover: 'Discover',
       map: 'Map',
       planner: 'Trip Planner',
+      journal: 'Journal',
       stories: 'Stories',
       saved: 'Saved',
       community: 'Community',

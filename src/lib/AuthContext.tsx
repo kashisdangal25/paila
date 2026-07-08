@@ -13,6 +13,7 @@ interface UserProfile {
   vendor_status: VendorStatus;
   phone?: string;
   avatar_url?: string;
+  isDemo?: boolean;
 }
 
 interface VendorProfile {
@@ -34,28 +35,47 @@ interface AuthContextType {
   vendor: VendorProfile | null;
   loading: boolean;
   userType: UserType;
+  isDemo: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (name: string, email: string, password: string, userType?: UserType, phone?: string) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
-  signUpVendor: (data: VendorSignUpData) => Promise<{ error: Error | null; pending?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
-}
-
-export interface VendorSignUpData {
-  name: string;
-  email: string;
-  password: string;
-  phone: string;
-  businessName: string;
-  businessType: string;
-  location: string;
-  district?: string;
-  description: string;
+  demoLogin: (type: 'traveler' | 'vendor') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const DEMO_TRAVELER: UserProfile = {
+  id: 'demo-traveler',
+  name: 'Suman Rai',
+  email: 'suman@demo.com',
+  user_type: 'traveler',
+  vendor_status: null,
+  isDemo: true,
+};
+
+const DEMO_VENDOR: UserProfile = {
+  id: 'demo-vendor',
+  name: 'Nima Sherpa',
+  email: 'nima@demo.com',
+  user_type: 'vendor',
+  vendor_status: 'approved',
+  isDemo: true,
+};
+
+const DEMO_VENDOR_PROFILE: VendorProfile = {
+  id: 'demo-vendor-profile',
+  business_name: 'Nima Sherpa Trekking',
+  business_type: 'guide',
+  location: 'Kathmandu',
+  district: 'Kathmandu',
+  description: 'Experienced mountain guide specializing in Everest and Annapurna regions. 15+ years of trekking experience.',
+  phone: '9812345678',
+  email: 'nima@demo.com',
+  status: 'approved',
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -63,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [vendor, setVendor] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
 
   const userType = profile?.user_type ?? null;
 
@@ -87,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar_url: profileData.avatar_url,
         });
 
-        // If vendor, fetch vendor profile
         if (profileData.user_type === 'vendor') {
           const { data: vendorData } = await supabase
             .from('vendors')
@@ -116,12 +136,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Check for demo session first
+    const demoSession = localStorage.getItem('paila_demo_session');
+    if (demoSession) {
+      try {
+        const parsed = JSON.parse(demoSession);
+        if (parsed.type === 'traveler') {
+          setProfile(DEMO_TRAVELER);
+          setIsDemo(true);
+          setLoading(false);
+          return;
+        } else if (parsed.type === 'vendor') {
+          setProfile(DEMO_VENDOR);
+          setVendor(DEMO_VENDOR_PROFILE);
+          setIsDemo(true);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        localStorage.removeItem('paila_demo_session');
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) console.error('Error getting session:', error);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // Small delay to allow trigger to create profile
         setTimeout(() => fetchProfile(session.user.id), 500);
       }
       setLoading(false);
@@ -132,11 +173,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Small delay to allow trigger to create profile
         setTimeout(() => fetchProfile(session.user.id), 500);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setVendor(null);
+        setIsDemo(false);
       }
     });
 
@@ -145,9 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    // Improve error message for email confirmation
     if (error?.message === 'Invalid login credentials') {
-      return { error: new Error('Wrong password, or your email is not yet confirmed. Check your inbox for a confirmation link.') as Error };
+      return { error: new Error('Wrong email or password. Please try again.') as Error };
     }
     return { error: error as Error | null };
   }, []);
@@ -170,14 +210,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { error: error as Error };
 
-    // Profile and vendor records are auto-created by database trigger
-
-    // Check if user needs email confirmation
     if (data.user && !data.session) {
       return { error: null, needsConfirmation: true };
     }
 
-    // If auto-login, refresh profile after trigger creates it
     if (data.user && data.session) {
       setTimeout(() => fetchProfile(data.user!.id), 1000);
     }
@@ -185,52 +221,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   }, [fetchProfile]);
 
-  const signUpVendor = useCallback(async (data: VendorSignUpData): Promise<{ error: Error | null; pending?: boolean }> => {
-    // Create auth user - profile/vendor auto-created by trigger
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          name: data.name,
-          user_type: 'vendor',
-          phone: data.phone,
-        },
-      },
-    });
-
-    if (authError) return { error: authError as Error };
-    if (!authData.user) return { error: new Error('Failed to create account') };
-
-    // Update vendor record with full details after trigger creates initial record
-    const { error: vendorError } = await supabase
-      .from('vendors')
-      .update({
-        business_name: data.businessName,
-        business_type: data.businessType,
-        location: data.location,
-        district: data.district || null,
-        description: data.description,
-        phone: data.phone,
-        email: data.email,
-        status: 'approved', // Auto-approve!
-      })
-      .eq('user_id', authData.user.id);
-
-    if (vendorError) {
-      console.error('Error updating vendor:', vendorError);
-    }
-
-    return { error: null, pending: false }; // Not pending - instant approval
-  }, []);
-
   const signOut = useCallback(async () => {
+    if (isDemo) {
+      localStorage.removeItem('paila_demo_session');
+      setProfile(null);
+      setVendor(null);
+      setIsDemo(false);
+      return;
+    }
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
     setVendor(null);
-  }, []);
+  }, [isDemo]);
 
   const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -250,6 +254,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, fetchProfile]);
 
+  const demoLogin = useCallback((type: 'traveler' | 'vendor') => {
+    localStorage.setItem('paila_demo_session', JSON.stringify({ type }));
+    setIsDemo(true);
+    if (type === 'traveler') {
+      setProfile(DEMO_TRAVELER);
+      setVendor(null);
+    } else {
+      setProfile(DEMO_VENDOR);
+      setVendor(DEMO_VENDOR_PROFILE);
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     session,
@@ -257,13 +273,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     vendor,
     loading,
     userType,
+    isDemo,
     signIn,
     signUp,
-    signUpVendor,
     signOut,
     resetPassword,
     updatePassword,
     refreshProfile,
+    demoLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

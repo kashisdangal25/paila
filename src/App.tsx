@@ -10,11 +10,10 @@ import AuthModal from './components/AuthModal';
 import { ToastContainer } from './components/Toast';
 
 function AppContent() {
-  const { user, loading, userType, profile } =  useAuth();
+  const { user, loading, userType, profile, isDemo, demoLogin } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [pendingVendorData, setPendingVendorData] = useState<any>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>>([]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -34,16 +33,25 @@ function AppContent() {
     setShowAuthModal(true);
   };
 
-  // Check if vendor needs onboarding
+  const handleDemoLogin = (type: 'traveler' | 'vendor') => {
+    demoLogin(type);
+    setShowAuthModal(false);
+    if (type === 'traveler') {
+      showToast('Welcome to Paila, Suman!', 'success');
+    } else {
+      showToast('Welcome to Paila, Nima!', 'success');
+    }
+  };
+
+  // Check if vendor needs onboarding (skip for demo vendor since they have a pre-built profile)
   useEffect(() => {
-    if (user && userType === 'vendor') {
-      // Check if they've completed onboarding
+    if (user && userType === 'vendor' && !isDemo) {
       const onboardingComplete = localStorage.getItem('vendor_onboarding_complete');
       if (!onboardingComplete) {
         setShowOnboarding(true);
       }
     }
-  }, [user, userType]);
+  }, [user, userType, isDemo]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('vendor_onboarding_complete', 'true');
@@ -61,8 +69,8 @@ function AppContent() {
     );
   }
 
-  // Show onboarding for new vendors
-  if (showOnboarding && user && userType === 'vendor') {
+  // Show onboarding for new vendors (not demo)
+  if (showOnboarding && user && userType === 'vendor' && !isDemo) {
     return (
       <VendorOnboarding
         onComplete={handleOnboardingComplete}
@@ -71,9 +79,11 @@ function AppContent() {
     );
   }
 
+  const isLoggedIn = user || (isDemo && profile);
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-forest-900 transition-colors">
-      {user ? (
+      {isLoggedIn ? (
         userType === 'vendor' ? (
           <VendorDashboard />
         ) : (
@@ -91,6 +101,7 @@ function AppContent() {
         mode={authMode}
         onClose={() => setShowAuthModal(false)}
         showToast={showToast}
+        onDemoLogin={handleDemoLogin}
       />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
