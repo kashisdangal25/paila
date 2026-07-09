@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Calendar, Star, Heart, MapPin, Camera, Edit2, ChevronRight, Award, TrendingUp, Globe, BookOpen, Plus
+  Calendar, Star, Heart, MapPin, Camera, Edit2, ChevronRight, Award, TrendingUp, Globe, BookOpen, Plus, Shield, Navigation
 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { useI18n } from '../../lib/i18n';
@@ -9,6 +9,20 @@ import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { ProfileEditModal } from '../ProfileEditModal';
 import { JournalModal } from '../JournalModal';
+
+interface Profile {
+  name: string;
+  bio: string | null;
+  location: string | null;
+  profile_photo_url: string | null;
+  username?: string | null;
+  nationality?: string | null;
+  phone?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  is_currently_travelling?: boolean;
+  trekking_experience_level?: string | null;
+}
 
 interface UserStats {
   trips_completed: number;
@@ -115,6 +129,13 @@ export function ProfileTab() {
           bio: profileData.bio,
           location: profileData.location || 'Nepal',
           profile_photo_url: profileData.profile_photo_url,
+          username: profileData.username,
+          nationality: profileData.nationality,
+          phone: profileData.phone,
+          emergency_contact_name: profileData.emergency_contact_name,
+          emergency_contact_phone: profileData.emergency_contact_phone,
+          is_currently_travelling: profileData.is_currently_travelling,
+          trekking_experience_level: profileData.trekking_experience_level,
         });
       } else if (user.email) {
         setProfile(prev => ({ ...prev, name: user.email!.split('@')[0] }));
@@ -283,7 +304,15 @@ export function ProfileTab() {
       {/* Name & Bio */}
       <div className="pt-10">
         <div className="flex items-center justify-between mb-2">
-          <h1 className={cn('text-2xl font-display font-bold', colors.text)}>{profile.name}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className={cn('text-2xl font-display font-bold', colors.text)}>{profile.name}</h1>
+            {profile.is_currently_travelling && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-300">
+                <Navigation className="w-3 h-3" />
+                Travelling
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setShowEditModal(true)}
             className={cn(
@@ -298,9 +327,17 @@ export function ProfileTab() {
         {profile.bio && (
           <p className={cn('text-sm mb-2', colors.textSecondary)}>{profile.bio}</p>
         )}
-        <p className={cn('text-sm', colors.textMuted)}>
-          Explorer Level {stats.current_level} • {profile.location}
-        </p>
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+          <p className={cn('text-sm', colors.textMuted)}>
+            Explorer Level {stats.current_level} • {profile.location}
+          </p>
+          {profile.username && (
+            <span className={cn('text-sm', colors.textMuted)}>• @{profile.username}</span>
+          )}
+          {profile.nationality && (
+            <span className={cn('text-sm', colors.textMuted)}>• {profile.nationality}</span>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -344,6 +381,41 @@ export function ProfileTab() {
           {xpForNextLevel - stats.current_xp} XP to Level {stats.current_level + 1}
         </p>
       </div>
+
+      {/* Safety Info */}
+      {(profile.emergency_contact_name || profile.trekking_experience_level) && (
+        <section className={cn('rounded-xl p-4 border', isDark ? 'bg-forest-800/50 border-forest-700' : 'bg-blue-50 border-blue-200')}>
+          <h2 className={cn('font-display font-bold text-lg flex items-center gap-2 mb-3', colors.text)}>
+            <Shield className="w-5 h-5" /> Safety Info
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            {profile.emergency_contact_name && (
+              <div className={cn('flex items-center gap-2', colors.textSecondary)}>
+                <Heart className="w-4 h-4 text-rose-500" />
+                <span>Emergency: {profile.emergency_contact_name}</span>
+              </div>
+            )}
+            {profile.emergency_contact_phone && (
+              <div className={cn('flex items-center gap-2', colors.textSecondary)}>
+                <MapPin className="w-4 h-4 text-blue-500" />
+                <span>{profile.emergency_contact_phone}</span>
+              </div>
+            )}
+            {profile.trekking_experience_level && (
+              <div className={cn('flex items-center gap-2', colors.textSecondary)}>
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                <span className="capitalize">{profile.trekking_experience_level} trekker</span>
+              </div>
+            )}
+            {profile.is_currently_travelling && (
+              <div className={cn('flex items-center gap-2', colors.textSecondary)}>
+                <Navigation className="w-4 h-4 text-emerald-500" />
+                <span>Currently travelling</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Journal Section */}
       <section>

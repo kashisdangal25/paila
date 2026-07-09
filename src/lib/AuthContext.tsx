@@ -5,27 +5,58 @@ import { supabase } from './supabase';
 export type UserType = 'traveler' | 'vendor' | null;
 export type VendorStatus = 'pending' | 'approved' | 'rejected' | null;
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   name: string;
   email: string;
   user_type: UserType;
   vendor_status: VendorStatus;
-  phone?: string;
-  avatar_url?: string;
-  isDemo?: boolean;
+  phone?: string | null;
+  avatar_url?: string | null;
+  profile_photo_url?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  username?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  nationality?: string | null;
+  country_of_residence?: string | null;
+  preferred_language?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_contact_relationship?: string | null;
+  blood_group?: string | null;
+  medical_conditions?: string | null;
+  allergies?: string | null;
+  trekking_experience_level?: string | null;
+  preferred_emergency_language?: string | null;
+  sos_enabled?: boolean;
+  last_known_location?: { lat: number; lng: number; updated_at?: string } | null;
+  offline_trek_status?: string | null;
+  travel_insurance?: { provider?: string; policy?: string; phone?: string } | null;
+  is_currently_travelling?: boolean;
 }
 
-interface VendorProfile {
+export interface VendorProfile {
   id: string;
   business_name: string;
   business_type: string;
   location: string;
-  district?: string;
+  district?: string | null;
   description: string;
   phone: string;
   email: string;
   status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface TrustedContact {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  relationship?: string | null;
+  notify_on_trip: boolean;
+  notify_on_sos: boolean;
 }
 
 interface AuthContextType {
@@ -35,47 +66,28 @@ interface AuthContextType {
   vendor: VendorProfile | null;
   loading: boolean;
   userType: UserType;
-  isDemo: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (name: string, email: string, password: string, userType?: UserType, phone?: string) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
+  signUp: (data: SignUpData) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
-  demoLogin: (type: 'traveler' | 'vendor') => void;
+}
+
+export interface SignUpData {
+  name: string;
+  username?: string;
+  email: string;
+  password: string;
+  phone: string;
+  userType?: 'traveler' | 'vendor';
+  country?: string;
+  nationality?: string;
+  preferredLanguage?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const DEMO_TRAVELER: UserProfile = {
-  id: 'demo-traveler',
-  name: 'Suman Rai',
-  email: 'suman@demo.com',
-  user_type: 'traveler',
-  vendor_status: null,
-  isDemo: true,
-};
-
-const DEMO_VENDOR: UserProfile = {
-  id: 'demo-vendor',
-  name: 'Nima Sherpa',
-  email: 'nima@demo.com',
-  user_type: 'vendor',
-  vendor_status: 'approved',
-  isDemo: true,
-};
-
-const DEMO_VENDOR_PROFILE: VendorProfile = {
-  id: 'demo-vendor-profile',
-  business_name: 'Nima Sherpa Trekking',
-  business_type: 'guide',
-  location: 'Kathmandu',
-  district: 'Kathmandu',
-  description: 'Experienced mountain guide specializing in Everest and Annapurna regions. 15+ years of trekking experience.',
-  phone: '9812345678',
-  email: 'nima@demo.com',
-  status: 'approved',
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -83,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [vendor, setVendor] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
 
   const userType = profile?.user_type ?? null;
 
@@ -98,15 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileError) throw profileError;
 
       if (profileData) {
-        setProfile({
-          id: profileData.id,
-          name: profileData.name,
-          email: profileData.email,
-          user_type: profileData.user_type || 'traveler',
-          vendor_status: profileData.vendor_status,
-          phone: profileData.phone,
-          avatar_url: profileData.avatar_url,
-        });
+        setProfile(profileData as UserProfile);
 
         if (profileData.user_type === 'vendor') {
           const { data: vendorData } = await supabase
@@ -116,17 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .maybeSingle();
 
           if (vendorData) {
-            setVendor({
-              id: vendorData.id,
-              business_name: vendorData.business_name,
-              business_type: vendorData.business_type,
-              location: vendorData.location,
-              district: vendorData.district,
-              description: vendorData.description,
-              phone: vendorData.phone,
-              email: vendorData.email,
-              status: vendorData.status,
-            });
+            setVendor(vendorData as VendorProfile);
           }
         }
       }
@@ -136,31 +129,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Check for real Supabase session first (real auth takes priority over demo)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) console.error('Error getting session:', error);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
-      } else {
-        // Only check demo session if no real session exists
-        const demoSession = localStorage.getItem('paila_demo_session');
-        if (demoSession) {
-          try {
-            const parsed = JSON.parse(demoSession);
-            if (parsed.type === 'traveler') {
-              setProfile(DEMO_TRAVELER);
-              setIsDemo(true);
-            } else if (parsed.type === 'vendor') {
-              setProfile(DEMO_VENDOR);
-              setVendor(DEMO_VENDOR_PROFILE);
-              setIsDemo(true);
-            }
-          } catch {
-            localStorage.removeItem('paila_demo_session');
-          }
-        }
       }
       setLoading(false);
     });
@@ -170,11 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        fetchProfile(session.user.id);
+        (async () => {
+          await fetchProfile(session.user.id);
+        })();
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setVendor(null);
-        setIsDemo(false);
       }
     });
 
@@ -189,49 +164,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   }, []);
 
-  const signUp = useCallback(async (
-    name: string,
-    email: string,
-    password: string,
-    newUserType: UserType = 'traveler',
-    phone?: string
-  ) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+  const signUp = useCallback(async (data: SignUpData) => {
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
       options: {
-        data: { name, user_type: newUserType, phone },
+        data: {
+          name: data.name,
+          user_type: data.userType ?? 'traveler',
+          phone: data.phone,
+          username: data.username,
+          country: data.country,
+          nationality: data.nationality,
+          preferred_language: data.preferredLanguage,
+        },
         emailRedirectTo: window.location.origin,
       },
     });
 
     if (error) return { error: error as Error };
 
-    if (data.user && !data.session) {
+    if (signUpData.user && !signUpData.session) {
       return { error: null, needsConfirmation: true };
     }
 
-    if (data.user && data.session) {
-      fetchProfile(data.user.id);
+    if (signUpData.user && signUpData.session) {
+      await fetchProfile(signUpData.user.id);
     }
 
     return { error: null };
   }, [fetchProfile]);
 
   const signOut = useCallback(async () => {
-    if (isDemo) {
-      localStorage.removeItem('paila_demo_session');
-      setProfile(null);
-      setVendor(null);
-      setIsDemo(false);
-      return;
-    }
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
     setVendor(null);
-  }, [isDemo]);
+  }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -245,23 +215,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   }, []);
 
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+    if (!user) return { error: new Error('Not authenticated') };
+    const { error } = await supabase
+      .from('profiles')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', user.id);
+    if (!error) {
+      setProfile(prev => prev ? { ...prev, ...updates } : prev);
+    }
+    return { error: error as Error | null };
+  }, [user]);
+
   const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfile(user.id);
     }
   }, [user, fetchProfile]);
-
-  const demoLogin = useCallback((type: 'traveler' | 'vendor') => {
-    localStorage.setItem('paila_demo_session', JSON.stringify({ type }));
-    setIsDemo(true);
-    if (type === 'traveler') {
-      setProfile(DEMO_TRAVELER);
-      setVendor(null);
-    } else {
-      setProfile(DEMO_VENDOR);
-      setVendor(DEMO_VENDOR_PROFILE);
-    }
-  }, []);
 
   const value: AuthContextType = {
     user,
@@ -270,14 +240,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     vendor,
     loading,
     userType,
-    isDemo,
     signIn,
     signUp,
     signOut,
     resetPassword,
     updatePassword,
+    updateProfile,
     refreshProfile,
-    demoLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

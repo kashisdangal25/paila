@@ -10,7 +10,7 @@ import AuthModal from './components/AuthModal';
 import { ToastContainer } from './components/Toast';
 
 function AppContent() {
-  const { user, loading, userType, profile, isDemo, demoLogin } = useAuth();
+  const { user, loading, userType, profile } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -33,25 +33,15 @@ function AppContent() {
     setShowAuthModal(true);
   };
 
-  const handleDemoLogin = (type: 'traveler' | 'vendor') => {
-    demoLogin(type);
-    setShowAuthModal(false);
-    if (type === 'traveler') {
-      showToast('Welcome to Paila, Suman!', 'success');
-    } else {
-      showToast('Welcome to Paila, Nima!', 'success');
-    }
-  };
-
-  // Check if vendor needs onboarding (skip for demo vendor since they have a pre-built profile)
+  // Check if vendor needs onboarding
   useEffect(() => {
-    if (user && userType === 'vendor' && !isDemo) {
+    if (user && userType === 'vendor') {
       const onboardingComplete = localStorage.getItem('vendor_onboarding_complete');
       if (!onboardingComplete) {
         setShowOnboarding(true);
       }
     }
-  }, [user, userType, isDemo]);
+  }, [user, userType]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('vendor_onboarding_complete', 'true');
@@ -69,8 +59,8 @@ function AppContent() {
     );
   }
 
-  // Show onboarding for new vendors (not demo)
-  if (showOnboarding && user && userType === 'vendor' && !isDemo) {
+  // Show onboarding for new vendors
+  if (showOnboarding && user && userType === 'vendor') {
     return (
       <VendorOnboarding
         onComplete={handleOnboardingComplete}
@@ -79,7 +69,7 @@ function AppContent() {
     );
   }
 
-  const isLoggedIn = user || (isDemo && profile);
+  const isLoggedIn = !!user;
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-forest-900 transition-colors">
@@ -101,7 +91,6 @@ function AppContent() {
         mode={authMode}
         onClose={() => setShowAuthModal(false)}
         showToast={showToast}
-        onDemoLogin={handleDemoLogin}
       />
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
