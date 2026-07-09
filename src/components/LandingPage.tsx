@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Users, Navigation, Shield, Calendar, BookOpen, ChevronRight, Mountain, Quote, Heart, Play } from 'lucide-react';
+import { Search, MapPin, Star, Users, Navigation, Shield, Calendar, BookOpen, ChevronRight, Mountain, Quote } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LandingPageProps {
@@ -348,7 +348,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
           <div className="grid md:grid-cols-2 gap-6">
             <div className="relative h-96 rounded-2xl overflow-hidden group">
               <img
-                src="https://images.unsplash.com/photo-1606298855672-3efb63017be8?w=800&q=80"
+                src="https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800"
                 alt="Rara Lake"
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
@@ -374,12 +374,12 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
                 {
                   name: 'Khopra Ridge',
                   tag: 'Guide Favorite',
-                  image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
+                  image: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
                 },
                 {
                   name: 'Shey Phoksundo',
                   tag: 'Hidden',
-                  image: 'https://images.unsplash.com/photo-1545153996-9097ab2c9d2c?w=800&q=80',
+                  image: 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
                 },
               ].map((gem) => (
                 <div
@@ -543,7 +543,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
             {[
               {
                 name: 'Nima Sherpa',
-                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+                avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Everest', 'High Altitude', 'Mountaineering'],
                 languages: 'English, Nepali, Tibetan',
                 rating: 4.9,
@@ -552,7 +552,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
               },
               {
                 name: 'Pemba Tamang',
-                avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80',
+                avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Annapurna Circuit', 'Cultural Tours'],
                 languages: 'English, Nepali, Hindi, German',
                 rating: 4.8,
@@ -561,7 +561,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
               },
               {
                 name: 'Dorje Lama',
-                avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
+                avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Langtang Valley', 'Wildlife', 'Day Hikes'],
                 languages: 'English, Nepali, French',
                 rating: 4.9,

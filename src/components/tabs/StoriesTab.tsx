@@ -85,7 +85,7 @@ export function StoriesTab() {
               <div className={cn('w-16 h-16 rounded-full p-0.5', selectedStory?.id === story.id ? 'bg-gradient-to-tr from-forest-600 to-forest-400' : 'bg-gradient-to-tr from-stone-300 to-stone-200')}>
                 <div className={cn('w-full h-full rounded-full overflow-hidden', colors.bgSecondary)}>
                   {story.user_avatar ? (
-                    <img src={story.user_avatar} alt={story.user_name} className="w-full h-full object-cover" />
+                    <img src={story.user_avatar} alt={story.user_name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
                     <div className={cn('w-full h-full flex items-center justify-center text-xl font-bold', colors.accentBg, `text-${colors.accent}`)}>{story.user_name[0]}</div>
                   )}
@@ -216,7 +216,7 @@ export function StoriesTab() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setSelectedStory(null)}>
           <div className={cn('w-full max-w-lg rounded-2xl overflow-hidden', colors.card === 'bg-white' ? 'bg-white' : 'bg-forest-900')} onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-stone-100 dark:border-forest-700 flex items-center gap-3">
-              <img src={selectedStory.user_avatar || `https://ui-avatars.com/api/?name=${selectedStory.user_name}&background=16a34a&color=fff`} alt={selectedStory.user_name} className="w-10 h-10 rounded-full" />
+              <img src={selectedStory.user_avatar || `https://ui-avatars.com/api/?name=${selectedStory.user_name}&background=16a34a&color=fff`} alt={selectedStory.user_name} className="w-10 h-10 rounded-full" onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${selectedStory.user_name}&background=16a34a&color=fff`; }} />
               <div>
                 <h3 className={cn('font-semibold', colors.text)}>{selectedStory.user_name}</h3>
                 <p className={cn('text-xs', colors.textMuted)}>{selectedStory.destinations?.name || 'Travel Story'}</p>

@@ -316,7 +316,7 @@ export function MapTab() {
     // Popup content
     const popupContent = `
       <div style="width:200px;font-family:'Plus Jakarta Sans',sans-serif">
-        ${place.image_url ? `<img src="${place.image_url}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px" alt="${place.name}">` : ''}
+        ${place.image_url ? `<img src="${place.image_url}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px" alt="${place.name}" onerror="this.style.display='none'">` : ''}
         <div style="font-weight:700;font-size:14px;color:#1B4332;margin-bottom:4px">${place.name}</div>
         ${place.region ? `<div style="font-size:12px;color:#666;margin-bottom:6px">📍 ${place.region}</div>` : ''}
         <div style="display:flex;gap:4px;margin-bottom:8px">
@@ -473,7 +473,7 @@ export function MapTab() {
             >
               <div className="relative h-24 bg-stone-100">
                 {place.image_url ? (
-                  <img src={place.image_url} alt={place.name} className="w-full h-full object-cover" />
+                  <img src={place.image_url} alt={place.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-forest-100">
                     <span className="text-2xl">

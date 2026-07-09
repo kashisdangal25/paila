@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Menu, Home, Compass, Map, Heart, Users, Bell, Settings, User, BookOpen, Journal } from 'lucide-react';
+import { Shield, Menu, Home, Compass, Map, Heart, Users, Bell, Settings, User, BookOpen, Calendar } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { useI18n } from '../lib/i18n';
 import { useTheme, useThemeColors } from '../lib/ThemeContext';
@@ -35,8 +35,13 @@ export default function Dashboard({ showToast }: DashboardProps) {
   const [adminMode, setAdminMode] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
-    showToast('Signed out. See you on the trail!', 'info');
+    try {
+      await signOut();
+      showToast('Signed out. See you on the trail!', 'info');
+    } catch (err) {
+      console.error('Sign out failed:', err);
+      showToast('Sign out failed. Please try again.', 'error');
+    }
   };
 
   const handleAdmin = () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MapPin, Calendar, Sun, Cloud, CloudRain, RefreshCw, Loader2, Globe, Lock } from 'lucide-react';
+import { X, MapPin, Sun, Cloud, CloudRain, Loader2, Globe, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useThemeColors } from '../lib/ThemeContext';
 import { cn } from '../lib/utils';

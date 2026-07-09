@@ -173,18 +173,24 @@ export function DestinationDetail({ destinationId, onBack }: DestinationDetailPr
   async function toggleSave() {
     if (!user || !destination) return;
 
-    if (isSaved) {
-      await supabase
-        .from('user_saved')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('destination_id', destinationId);
-    } else {
-      await supabase
-        .from('user_saved')
-        .insert({ user_id: user.id, destination_id: destinationId });
+    try {
+      if (isSaved) {
+        const { error } = await supabase
+          .from('user_saved')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('destination_id', destinationId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('user_saved')
+          .insert({ user_id: user.id, destination_id: destinationId });
+        if (error) throw error;
+      }
+      setIsSaved(!isSaved);
+    } catch (err) {
+      console.error('Failed to toggle save:', err);
     }
-    setIsSaved(!isSaved);
   }
 
   async function submitReport() {

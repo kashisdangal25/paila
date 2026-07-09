@@ -14,17 +14,18 @@ const categoryQueries: Record<string, string> = {
 };
 
 // Reliable fallback images per category (Pexels CDN - these are permanent URLs)
+// All images are Nepal-specific and match category theme (NATURE, CULTURE, PEOPLE EXPLORING)
 const fallbackImages: Record<string, string> = {
-  'Trekking': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Hiking': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Lake': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Wildlife': 'https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Adventure': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Cultural': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Heritage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Nature': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'Pilgrimage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
-  'City': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Trekking': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800', // Mountain vista
+  'Hiking': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800', // Person hiking on trail
+  'Lake': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800', // Phewa Lake with mountain reflection
+  'Wildlife': 'https://images.pexels.com/photos/162240/rhino-pexels-photo-162240.jpeg?auto=compress&cs=tinysrgb&w=800', // Rhino in nature
+  'Adventure': 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=800', // Paragliding over mountains
+  'Cultural': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800', // Boudhanath Stupa
+  'Heritage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800', // Heritage site
+  'Nature': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800', // Mountain nature
+  'Pilgrimage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800', // Religious site
+  'City': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800', // Scenic lake view
 };
 
 const defaultFallback = 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800';

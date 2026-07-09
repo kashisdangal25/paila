@@ -50,8 +50,7 @@ export function ProfileEditModal({ isOpen, onClose, profile, userId, onSave }: P
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `profile-${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `profiles/${fileName}`;
+      const filePath = `${userId}/profile-${Date.now()}.${fileExt}`;
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage

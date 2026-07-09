@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Calendar, Star, Heart, MapPin, Camera, Edit2, ChevronRight, Award, TrendingUp, Globe, Settings, BookOpen, Plus
+  Calendar, Star, Heart, MapPin, Camera, Edit2, ChevronRight, Award, TrendingUp, Globe, BookOpen, Plus
 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { useI18n } from '../../lib/i18n';
@@ -225,12 +225,16 @@ export function ProfileTab() {
   const handleDeleteJournal = async (journalId: string) => {
     if (!confirm('Are you sure you want to delete this journal entry?')) return;
 
-    await supabase
-      .from('user_journals')
-      .delete()
-      .eq('id', journalId);
-
-    fetchJournals();
+    try {
+      const { error } = await supabase
+        .from('user_journals')
+        .delete()
+        .eq('id', journalId);
+      if (error) throw error;
+      fetchJournals();
+    } catch (err) {
+      console.error('Failed to delete journal:', err);
+    }
   };
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -481,7 +485,7 @@ export function ProfileTab() {
               >
                 <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-forest-600 to-forest-400 overflow-hidden">
                   {trip.destinations?.image_url ? (
-                    <img src={trip.destinations.image_url} alt="" className="w-full h-full object-cover" />
+                    <img src={trip.destinations.image_url} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">

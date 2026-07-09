@@ -327,7 +327,7 @@ export function TodayTab() {
             >
               <div className="h-28 relative">
                 {gem.image_url && (
-                  <img src={gem.image_url} alt={gem.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={gem.image_url} alt={gem.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute top-2 right-2 bg-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

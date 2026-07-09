@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, MapPin, Star, Search, ChevronRight, Trash2, FolderPlus, Compass, User, Home, Tent } from 'lucide-react';
+import { Heart, MapPin, Star, Search, ChevronRight, Trash2, FolderPlus, Compass, User, Home } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useI18n } from '../../lib/i18n';
 import { useThemeColors } from '../../lib/ThemeContext';
@@ -187,7 +187,7 @@ function SavedItemCard({
     >
       <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
         {item.data.image_url ? (
-          <img src={item.data.image_url} alt={item.data.name} className="w-full h-full object-cover" />
+          <img src={item.data.image_url} alt={item.data.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         ) : (
           <div className={cn('w-full h-full flex items-center justify-center', colors.accentBg)}>
             <Icon className={cn('w-6 h-6', `text-${colors.accent}`)} />

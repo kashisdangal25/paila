@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, Users, Building2, Calendar, Star, ChevronLeft, Plus, Edit2,
-  Phone, Mail, MapPin, Clock, DollarSign, Shield, CheckCircle, AlertCircle, Camera, FileText, LogOut
+  LayoutDashboard, Users, Calendar, Star, ChevronLeft, Edit2,
+  MapPin, DollarSign, CheckCircle, AlertCircle, Camera, FileText, LogOut
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';

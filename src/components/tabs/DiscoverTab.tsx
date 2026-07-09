@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Search, Star, MapPin, Clock, ChevronRight, Heart, SlidersHorizontal, Users, Shield
+  Search, Star, MapPin, Clock, ChevronRight, Heart, SlidersHorizontal, Users, Shield, Mountain, X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useI18n } from '../../lib/i18n';
@@ -49,6 +49,15 @@ function PlaceImage({ place, className }: { place: any; className?: string }) {
   );
 }
 
+const difficulties = ['All', 'Easy', 'Moderate', 'Hard'];
+const budgetRanges = [
+  { id: 'all', label: 'All Budgets', min: 0, max: 1000000 },
+  { id: 'low', label: 'Budget (Under NPR 2,000)', min: 0, max: 2000 },
+  { id: 'medium', label: 'Mid-Range (NPR 2,000-10,000)', min: 2000, max: 10000 },
+  { id: 'high', label: 'Premium (NPR 10,000+)', min: 10000, max: 1000000 },
+];
+const sortOptions = ['Popular', 'Rating', 'Name', 'Budget'];
+
 export function DiscoverTab() {
   const { t } = useI18n();
   const colors = useThemeColors();
@@ -61,6 +70,13 @@ export function DiscoverTab() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+
+  // Advanced filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [difficultyFilter, setDifficultyFilter] = useState('All');
+  const [budgetFilter, setBudgetFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('Popular');
+  const [showHiddenGemsOnly, setShowHiddenGemsOnly] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -99,11 +115,27 @@ export function DiscoverTab() {
     fetchData();
   }, []);
 
-  const filteredDestinations = destinations.filter((d) => {
-    const matchesSearch = !search || d.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || d.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredDestinations = destinations
+    .filter((d) => {
+      const matchesSearch = !search ||
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.region?.toLowerCase().includes(search.toLowerCase()) ||
+        d.category?.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = activeCategory === 'All' || d.category === activeCategory;
+      const matchesDifficulty = difficultyFilter === 'All' || d.difficulty === difficultyFilter;
+      const matchesBudget = budgetFilter === 'all' ||
+        ((d.budget_min || 0) >= budgetRanges.find(b => b.id === budgetFilter)?.min! &&
+         (d.budget_max || 1000000) <= budgetRanges.find(b => b.id === budgetFilter)?.max!);
+      const matchesHiddenGem = !showHiddenGemsOnly || d.is_hidden_gem === true;
+      return matchesSearch && matchesCategory && matchesDifficulty && matchesBudget && matchesHiddenGem;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'Popular') return (b.review_count || 0) - (a.review_count || 0);
+      if (sortBy === 'Rating') return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'Name') return a.name.localeCompare(b.name);
+      if (sortBy === 'Budget') return (a.budget_min || 0) - (b.budget_min || 0);
+      return 0;
+    });
 
   const handleToggleSave = async (type: 'destination' | 'hidden_gem', id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -138,7 +170,7 @@ export function DiscoverTab() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search destinations, hidden gems..."
+            placeholder="Search destinations, regions, categories..."
             className={cn(
               'w-full pl-12 pr-4 py-3 rounded-xl border-2 transition-all',
               colors.card === 'bg-white' ? 'bg-white border-stone-200' : 'bg-forest-800/50 border-forest-700',
@@ -147,12 +179,158 @@ export function DiscoverTab() {
             )}
           />
         </div>
-        <button className={cn(
-          'px-4 rounded-xl border-2 flex items-center gap-2 transition-colors',
-          colors.card === 'bg-white' ? 'bg-white border-stone-200 hover:border-forest-300' : 'bg-forest-800/50 border-forest-700 hover:border-forest-600'
-        )}>
-          <SlidersHorizontal className={cn('w-5 h-5', colors.textSecondary)} />
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={cn(
+            'px-4 rounded-xl border-2 flex items-center gap-2 transition-colors',
+            showFilters
+              ? 'bg-forest-600 text-white border-forest-600'
+              : colors.card === 'bg-white'
+                ? 'bg-white border-stone-200 hover:border-forest-300'
+                : 'bg-forest-800/50 border-forest-700 hover:border-forest-600'
+          )}
+        >
+          <SlidersHorizontal className={cn('w-5 h-5', showFilters ? 'text-white' : colors.textSecondary)} />
+          <span className={cn('text-sm font-medium', showFilters ? 'text-white' : colors.text)}>Filters</span>
         </button>
+      </div>
+
+      {/* Advanced Filters Panel */}
+      {showFilters && (
+        <div className={cn(
+          'rounded-xl p-4 border-2 animate-fade-in',
+          colors.card === 'bg-white' ? 'bg-white border-stone-200' : 'bg-forest-800/50 border-forest-700'
+        )}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Difficulty Filter */}
+            <div>
+              <label className={cn('text-xs font-medium mb-2 block', colors.textSecondary)}>Difficulty</label>
+              <div className="flex flex-wrap gap-2">
+                {difficulties.map((diff) => (
+                  <button
+                    key={diff}
+                    onClick={() => setDifficultyFilter(diff)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      difficultyFilter === diff
+                        ? 'bg-forest-600 text-white'
+                        : colors.card === 'bg-white'
+                          ? 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                          : 'bg-forest-700 text-forest-200 hover:bg-forest-600'
+                    )}
+                  >
+                    {diff}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Budget Filter */}
+            <div>
+              <label className={cn('text-xs font-medium mb-2 block', colors.textSecondary)}>Budget</label>
+              <select
+                value={budgetFilter}
+                onChange={(e) => setBudgetFilter(e.target.value)}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm border transition-all',
+                  colors.card === 'bg-white'
+                    ? 'bg-white border-stone-200 focus:border-forest-500'
+                    : 'bg-forest-700 border-forest-600 focus:border-forest-500',
+                  colors.text,
+                  'focus:outline-none'
+                )}
+              >
+                {budgetRanges.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <label className={cn('text-xs font-medium mb-2 block', colors.textSecondary)}>Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm border transition-all',
+                  colors.card === 'bg-white'
+                    ? 'bg-white border-stone-200 focus:border-forest-500'
+                    : 'bg-forest-700 border-forest-600 focus:border-forest-500',
+                  colors.text,
+                  'focus:outline-none'
+                )}
+              >
+                {sortOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Hidden Gems Toggle */}
+            <div>
+              <label className={cn('text-xs font-medium mb-2 block', colors.textSecondary)}>Special</label>
+              <label className={cn(
+                'flex items-center gap-2 cursor-pointer',
+                colors.textSecondary
+              )}>
+                <input
+                  type="checkbox"
+                  checked={showHiddenGemsOnly}
+                  onChange={(e) => setShowHiddenGemsOnly(e.target.checked)}
+                  className="w-4 h-4 rounded border-forest-500 text-forest-600 focus:ring-forest-500"
+                />
+                <span className="text-sm">Hidden Gems Only</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Active Filters */}
+          {(difficultyFilter !== 'All' || budgetFilter !== 'all' || showHiddenGemsOnly) && (
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-stone-200 dark:border-forest-700">
+              <span className={cn('text-xs', colors.textMuted)}>Active Filters:</span>
+              {difficultyFilter !== 'All' && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-forest-100 text-forest-700 text-xs">
+                  {difficultyFilter}
+                  <button onClick={() => setDifficultyFilter('All')}><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {budgetFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-forest-100 text-forest-700 text-xs">
+                  {budgetRanges.find(b => b.id === budgetFilter)?.label}
+                  <button onClick={() => setBudgetFilter('all')}><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {showHiddenGemsOnly && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs">
+                  Hidden Gems
+                  <button onClick={() => setShowHiddenGemsOnly(false)}><X className="w-3 h-3" /></button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Results Count */}
+      <div className="flex items-center justify-between">
+        <p className={cn('text-sm', colors.textSecondary)}>
+          {filteredDestinations.length} {filteredDestinations.length === 1 ? 'destination' : 'destinations'} found
+        </p>
+        {(activeCategory !== 'All' || difficultyFilter !== 'All' || budgetFilter !== 'all' || showHiddenGemsOnly || search) && (
+          <button
+            onClick={() => {
+              setActiveCategory('All');
+              setDifficultyFilter('All');
+              setBudgetFilter('all');
+              setShowHiddenGemsOnly(false);
+              setSearch('');
+            }}
+            className="text-sm text-forest-600 hover:text-forest-700 font-medium"
+          >
+            Clear all filters
+          </button>
+        )}
       </div>
 
       {/* Category Chips */}
@@ -294,7 +472,7 @@ export function DiscoverTab() {
               <div className="flex">
                 <div className="w-24 h-24 flex-shrink-0 relative">
                   {gem.image_url && (
-                    <img src={gem.image_url} alt={gem.name} className="w-full h-full object-cover" />
+                    <img src={gem.image_url} alt={gem.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   )}
                   <button
                     onClick={(e) => handleToggleSave('hidden_gem', gem.id, e)}

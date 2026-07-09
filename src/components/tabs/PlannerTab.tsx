@@ -200,11 +200,29 @@ export function PlannerTab() {
     const travelers = trip.travelers + 1;
     const fitness = tripOptions.fitness[trip.fitness];
 
-    // Find matching template or create default
-    const destId = dest?.id || dest?.slug || 'annapurna-base-camp';
-    const templateDays = itineraryTemplates[destId]?.[tripOptions.durations[trip.duration]] ||
-                          itineraryTemplates[destId]?.['7 Days'] ||
-                          itineraryTemplates['annapurna-base-camp']['7 Days'];
+    // Find matching template or generate a generic one
+    const destId = dest?.slug || 'annapurna-base-camp';
+    const durationKey = tripOptions.durations[trip.duration];
+    let templateDays = itineraryTemplates[destId]?.[durationKey] ||
+                       itineraryTemplates[destId]?.['7 Days'];
+
+    // If no template matches, generate a generic trekking itinerary
+    if (!templateDays) {
+      templateDays = Array.from({ length: Math.max(duration, 5) }, (_, i) => ({
+        day: i + 1,
+        title: i === 0 ? 'Arrival & Preparation' :
+               i === duration - 1 ? 'Return & Departure' :
+               i === 1 ? 'Trek Start' :
+               i === Math.floor(duration / 2) ? 'Acclimatization & Exploration' :
+               `Trek Day ${i}`,
+        activities: i === 0 ? [`Arrive at ${dest?.name || 'trailhead'}`, 'Trek briefing and gear check', 'Permit processing', 'Local area exploration'] :
+                    i === duration - 1 ? ['Morning descent', 'Final views', 'Drive to nearest city', 'Celebration dinner'] :
+                    i === Math.floor(duration / 2) ? ['Rest and acclimatize', 'Local village visit', 'Photography session', 'Cultural interaction'] :
+                    ['Continue trek', 'Scenic mountain views', 'Cross mountain passes', 'Teahouse overnight'],
+        accommodation: i === 0 || i === duration - 1 ? 'Hotel' : 'Teahouse',
+        cost: Math.round(budgetPerDay * 1.2),
+      }));
+    }
 
     // Adjust cost based on budget
     const costMultiplier = budgetPerDay / 3000;
@@ -266,7 +284,7 @@ export function PlannerTab() {
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + parseInt(tripOptions.durations[trip.duration].split(' ')[0]));
 
-      await supabase.from('trips').insert({
+      const { error: tripError } = await supabase.from('trips').insert({
         user_id: user.id,
         destination_id: itinerary.destination?.id,
         name: `${itinerary.destination?.name || 'Trek'} Adventure`,
@@ -277,12 +295,20 @@ export function PlannerTab() {
         status: 'planned',
       });
 
-      // Update user stats
+      if (tripError) throw tripError;
+
+      // Increment user stats (don't overwrite existing data)
+      const { data: existingStats } = await supabase
+        .from('user_stats')
+        .select('trips_planned')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
       await supabase
         .from('user_stats')
         .upsert({
           user_id: user.id,
-          trips_completed: 0,
+          trips_planned: (existingStats?.trips_planned || 0) + 1,
         }, { onConflict: 'user_id' });
     } catch (err) {
       console.error('Error saving itinerary:', err);
@@ -359,6 +385,7 @@ export function PlannerTab() {
                         src={dest.image_url}
                         alt={dest.name}
                         className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800'; }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-3">

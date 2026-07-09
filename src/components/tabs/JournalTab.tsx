@@ -21,6 +21,7 @@ interface JournalEntry {
   category: string;
   text: string;
   media_url: string | null;
+  media_type: string | null;
   is_public: boolean;
   created_at: string;
   profiles: {
@@ -209,6 +210,7 @@ export function JournalTab() {
           category: selectedCategory,
           text: entryText,
           media_url: mediaUrl,
+          media_type: mediaType,
           is_public: true
         });
 
@@ -527,6 +529,7 @@ export function JournalTab() {
                     src={entry.profiles.profile_photo_url}
                     alt={entry.profiles.name}
                     className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 ) : (
                   <div className={cn(
@@ -555,7 +558,7 @@ export function JournalTab() {
               {/* Media */}
               {entry.media_url && (
                 <div className="aspect-video">
-                  {entry.media_url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
+                  {entry.media_type === 'video' || entry.media_url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
                     <video
                       src={entry.media_url}
                       controls
@@ -566,6 +569,7 @@ export function JournalTab() {
                       src={entry.media_url}
                       alt="Journal media"
                       className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   )}
                 </div>
@@ -620,6 +624,7 @@ export function JournalTab() {
                           src={reply.profiles.profile_photo_url}
                           alt={reply.profiles.name}
                           className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       ) : (
                         <div className={cn(
