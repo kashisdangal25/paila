@@ -249,7 +249,7 @@ export function DestinationDetail({ destinationId, onBack }: DestinationDetailPr
       {/* Hero Image */}
       <div className="relative h-72 rounded-b-3xl overflow-hidden group">
         <img
-          src={destination.image_url || 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80'}
+          src={destination.image_url || 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800'}
           alt={destination.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />

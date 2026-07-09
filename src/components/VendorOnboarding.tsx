@@ -59,14 +59,14 @@ const DISTRICTS_BY_PROVINCE: Record<string, string[]> = {
 const PRICE_UNITS = ['day', 'trip', 'hour', 'night', 'person', 'item'];
 
 const PLACEHOLDER_IMAGES: Record<BusinessType, string> = {
-  guide: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
-  homestay: 'https://images.unsplash.com/photo-1520250497591-112f2f6a75a8?w=800&q=80',
-  transport: 'https://images.unsplash.com/photo-1449965408869-eaa3f722eada?w=800&q=80',
-  cafe: 'https://images.unsplash.com/photo-1555396273-36a6ddc1f1f6?w=800&q=80',
-  hotel: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80',
-  tour_operator: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
-  rental: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
-  other: 'https://images.unsplash.com/photo-1506905925346-21bda4d61d26?w=800&q=80',
+  guide: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  homestay: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  transport: 'https://images.pexels.com/photos-3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  cafe: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  hotel: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  tour_operator: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  rental: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  other: 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
 };
 
 const initialData: VendorData = {

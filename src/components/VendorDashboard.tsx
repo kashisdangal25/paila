@@ -81,7 +81,7 @@ const MOCK_LISTINGS: Listing[] = [
     rating: 4.9,
     reviewCount: 87,
     status: 'active',
-    image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80'
+    image: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=400'
   },
 ];
 

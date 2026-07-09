@@ -7,18 +7,18 @@ interface LandingPageProps {
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-// Nepal travel images from Pexels/Unsplash (royalty-free)
+// Nepal travel images from Pexels (royalty-free, reliable CDN)
 const heroImages = [
-  'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=1600&q=80',
-  'https://images.unsplash.com/photo-1516982914291-e6262ba9e02b?w=1600&q=80',
-  'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1600&q=80',
+  'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=1600',
+  'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1600',
+  'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=1600',
 ];
 
 const featuredDestinations = [
   {
     name: 'Annapurna Base Camp',
     tag: 'Trekking',
-    image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80',
+    image: 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.9,
     reviews: 3400,
     difficulty: 'Moderate',
@@ -27,7 +27,7 @@ const featuredDestinations = [
   {
     name: 'Phulchoki Hike',
     tag: 'Day Hike',
-    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
+    image: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.6,
     reviews: 321,
     difficulty: 'Easy',
@@ -36,7 +36,7 @@ const featuredDestinations = [
   {
     name: 'Rara Lake',
     tag: 'Hidden Gem',
-    image: 'https://images.unsplash.com/photo-1606298855672-3efb63017be8?w=800&q=80',
+    image: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
     rating: 4.9,
     reviews: 210,
     difficulty: 'Moderate',

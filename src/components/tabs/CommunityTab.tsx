@@ -7,10 +7,10 @@ import { useThemeColors } from '../../lib/ThemeContext';
 import { cn } from '../../lib/utils';
 
 const communityGroups = [
-  { id: '1', name: 'Solo Female Trekkers Nepal', members: '4.2K', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80', gradient: 'from-pink-500 to-rose-500' },
-  { id: '2', name: 'Kathmandu Valley Hikers', members: '2.8K', avatar: 'https://images.unsplash.com/photo-1501785888041-af3ef2d57d8a?w=100&q=80', gradient: 'from-forest-500 to-forest-600' },
-  { id: '3', name: 'Nepal Food Explorers', members: '1.5K', avatar: 'https://images.unsplash.com/photo-1504674900247-84e39c1b3a00?w=100&q=80', gradient: 'from-orange-500 to-amber-500' },
-  { id: '4', name: 'Photography Nepal', members: '2.1K', avatar: 'https://images.unsplash.com/photo-1506905925346-21bda18d6ff1?w=100&q=80', gradient: 'from-blue-500 to-indigo-500' },
+  { id: '1', name: 'Solo Female Trekkers Nepal', members: '4.2K', avatar: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=100', gradient: 'from-pink-500 to-rose-500' },
+  { id: '2', name: 'Kathmandu Valley Hikers', members: '2.8K', avatar: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=100', gradient: 'from-forest-500 to-forest-600' },
+  { id: '3', name: 'Nepal Food Explorers', members: '1.5K', avatar: 'https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=100', gradient: 'from-orange-500 to-amber-500' },
+  { id: '4', name: 'Photography Nepal', members: '2.1K', avatar: 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=100', gradient: 'from-blue-500 to-indigo-500' },
 ];
 
 export function CommunityTab() {

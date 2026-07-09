@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// Category-based search query mappings for better image results
 const categoryQueries: Record<string, string> = {
   'Trekking': 'Nepal Himalaya mountains trekking',
   'Hiking': 'Nepal hiking trails nature',
@@ -20,7 +19,22 @@ const categoryQueries: Record<string, string> = {
   'City': 'Nepal Kathmandu city streets',
 };
 
-// Build search query from place name and category
+// Reliable fallback images per category (Pexels stock photos, direct CDN URLs)
+const fallbackImages: Record<string, string> = {
+  'Trekking': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Hiking': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Lake': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Wildlife': 'https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Adventure': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Cultural': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Heritage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Nature': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Pilgrimage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'City': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+};
+
+const defaultFallback = 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800';
+
 function buildSearchQuery(placeName: string, category: string): string {
   const categoryPrefix = categoryQueries[category] || 'Nepal travel';
   return `${categoryPrefix} ${placeName}`;
@@ -63,7 +77,6 @@ Deno.serve(async (req: Request) => {
           const data = await pexelsResponse.json();
 
           if (data.photos && data.photos.length > 0) {
-            // Use the medium size image (good balance of quality and size)
             const photo = data.photos[0];
             return new Response(
               JSON.stringify({
@@ -81,17 +94,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Fallback: Use Unsplash Source API (no API key needed, but less reliable)
-    // This creates a themed URL that selects relevant images
-    const keywords = searchQuery.split(' ').slice(0, 3).join(',');
-    const fallbackUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(keywords)}`;
+    // Fallback: use a reliable static Pexels image based on category
+    const fallbackUrl = fallbackImages[category] || defaultFallback;
 
     return new Response(
       JSON.stringify({
         image_url: fallbackUrl,
-        photographer: 'Unsplash',
-        photographer_url: 'https://unsplash.com',
-        source: 'unsplash'
+        photographer: 'Pexels',
+        photographer_url: 'https://pexels.com',
+        source: 'fallback'
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -99,8 +110,11 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error('Error fetching image:', err);
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch image' }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        image_url: defaultFallback,
+        source: 'error-fallback'
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

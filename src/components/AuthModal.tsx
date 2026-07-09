@@ -103,10 +103,15 @@ export default function AuthModal({ isOpen, mode, onClose, showToast, onDemoLogi
     setLoading(true);
 
     try {
-      const { error: signUpError } = await signUp(name, email, password, 'traveler');
+      const { error: signUpError, needsConfirmation } = await signUp(name, email, password, 'traveler');
       if (signUpError) throw signUpError;
-      showToast(`Welcome to Paila, ${name.split(' ')[0]}!`, 'success');
-      onClose();
+      if (needsConfirmation) {
+        showToast('Account created! Please check your email to confirm.', 'success');
+        setCurrentStep('signin');
+      } else {
+        showToast(`Welcome to Paila, ${name.split(' ')[0]}!`, 'success');
+        onClose();
+      }
     } catch (err: any) {
       setCurrentStep('signup-traveler');
       if (err.message?.includes('already registered') || err.message?.includes('already been registered')) {
@@ -140,10 +145,15 @@ export default function AuthModal({ isOpen, mode, onClose, showToast, onDemoLogi
     setLoading(true);
 
     try {
-      const { error: signUpError } = await signUp(name, email, password, 'vendor');
+      const { error: signUpError, needsConfirmation } = await signUp(name, email, password, 'vendor');
       if (signUpError) throw signUpError;
-      showToast("Welcome! Let's set up your listing.", 'success');
-      onClose();
+      if (needsConfirmation) {
+        showToast('Account created! Please check your email to confirm.', 'success');
+        setCurrentStep('signin');
+      } else {
+        showToast("Welcome! Let's set up your listing.", 'success');
+        onClose();
+      }
     } catch (err: any) {
       setCurrentStep('signup-vendor');
       if (err.message?.includes('already registered') || err.message?.includes('already been registered')) {
@@ -215,7 +225,7 @@ export default function AuthModal({ isOpen, mode, onClose, showToast, onDemoLogi
 
   if (!isOpen) return null;
 
-  const NEPAL_BG = 'https://images.unsplash.com/photo-1516982914291-e6262ba9e02b?auto=format&fit=crop&w=1200&q=80';
+  const NEPAL_BG = 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=1200';
 
   const inputClass = (field: string) =>
     `input ${fieldErrors[field] ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`;

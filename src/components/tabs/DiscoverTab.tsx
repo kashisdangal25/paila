@@ -15,6 +15,7 @@ const categories = ['All', 'Trekking', 'Hiking', 'Lake', 'Wildlife', 'Adventure'
 // Helper component for async place images
 function PlaceImage({ place, className }: { place: any; className?: string }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function loadImage() {
@@ -30,9 +31,11 @@ function PlaceImage({ place, className }: { place: any; className?: string }) {
     if (place) loadImage();
   }, [place]);
 
-  if (!imageUrl) {
+  if (!imageUrl || error) {
     return (
-      <div className={`${className} bg-gradient-to-br from-forest-600 to-forest-400 animate-pulse`} />
+      <div className={`${className} bg-gradient-to-br from-forest-600 to-forest-400 flex items-center justify-center`}>
+        <Mountain className="w-12 h-12 text-white/30" />
+      </div>
     );
   }
 
@@ -41,6 +44,7 @@ function PlaceImage({ place, className }: { place: any; className?: string }) {
       src={imageUrl}
       alt={place.name}
       className={className}
+      onError={() => setError(true)}
     />
   );
 }

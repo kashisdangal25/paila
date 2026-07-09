@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 
-// Category-based search query mappings for better image results
 const categoryQueries: Record<string, string> = {
   'Trekking': 'Nepal Himalaya mountains trekking',
   'Hiking': 'Nepal hiking trails nature',
@@ -14,6 +13,22 @@ const categoryQueries: Record<string, string> = {
   'City': 'Nepal Kathmandu city streets',
 };
 
+// Reliable fallback images per category (Pexels CDN - these are permanent URLs)
+const fallbackImages: Record<string, string> = {
+  'Trekking': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Hiking': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Lake': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Wildlife': 'https://images.pexels.com/photos/247431/pexels-photo-247431.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Adventure': 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Cultural': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Heritage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Nature': 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'Pilgrimage': 'https://images.pexels.com/photos/161853/nepal-kathmandu-boudhanath-buddhism-161853.jpeg?auto=compress&cs=tinysrgb&w=800',
+  'City': 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
+};
+
+const defaultFallback = 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800';
+
 interface ImageResult {
   image_url: string;
   photographer?: string;
@@ -21,10 +36,6 @@ interface ImageResult {
   source: string;
 }
 
-/**
- * Fetches a real image for a place using the edge function
- * Results are cached in the destinations table
- */
 export async function fetchPlaceImage(
   placeId: string,
   placeName: string,
@@ -32,13 +43,15 @@ export async function fetchPlaceImage(
   currentImageUrl?: string | null,
   cachedImageUrl?: string | null
 ): Promise<string> {
-  // If we already have a cached image URL, use it
   if (cachedImageUrl) {
     return cachedImageUrl;
   }
 
-  // If current image is a good Unsplash URL (not a generic placeholder), use it
   if (currentImageUrl && currentImageUrl.includes('images.unsplash.com') && !currentImageUrl.includes('?query=')) {
+    return currentImageUrl;
+  }
+
+  if (currentImageUrl && currentImageUrl.includes('images.pexels.com')) {
     return currentImageUrl;
   }
 
@@ -61,7 +74,6 @@ export async function fetchPlaceImage(
 
     const data: ImageResult = await response.json();
 
-    // Cache the image URL in the database
     if (placeId && data.image_url) {
       await supabase
         .from('destinations')
@@ -75,40 +87,14 @@ export async function fetchPlaceImage(
     return data.image_url;
   } catch (error) {
     console.error('Error fetching place image:', error);
-    // Fallback to a themed placeholder based on category
-    return getCategoryFallbackImage(category, placeName);
+    return getCategoryFallbackImage(category);
   }
 }
 
-/**
- * Returns a fallback image URL based on category
- * Uses Unsplash Source for category-themed images
- */
-export function getCategoryFallbackImage(category: string, placeName?: string): string {
-  const keywords: Record<string, string> = {
-    'Trekking': 'mountains,nepal,himalaya',
-    'Hiking': 'hiking,trail,nature',
-    'Lake': 'lake,nepal,water',
-    'Wildlife': 'wildlife,safari,nature',
-    'Adventure': 'adventure,mountains,nepal',
-    'Cultural': 'temple,nepal,heritage',
-    'Heritage': 'heritage,architecture,nepal',
-    'Nature': 'nature,mountains,nepal',
-    'Pilgrimage': 'temple,stupa,nepal',
-    'City': 'kathmandu,city,nepal',
-  };
-
-  const query = keywords[category] || 'nepal,travel,mountains';
-
-  // Use Unsplash source with category keywords
-  // This URL pattern returns relevant images without API calls
-  return `https://source.unsplash.com/800x600/?${query}`;
+export function getCategoryFallbackImage(category: string): string {
+  return fallbackImages[category] || defaultFallback;
 }
 
-/**
- * Gets the best available image for a place, fetching if needed
- * This is the main function components should use
- */
 export async function getPlaceImage(
   place: {
     id: string;
@@ -119,17 +105,18 @@ export async function getPlaceImage(
   },
   options?: { skipCache?: boolean }
 ): Promise<string> {
-  // Check cached first
   if (!options?.skipCache && place.cached_image_url) {
     return place.cached_image_url;
   }
 
-  // Use existing image if it's good quality Unsplash
   if (place.image_url && place.image_url.includes('images.unsplash.com')) {
     return place.image_url;
   }
 
-  // Fetch new image
+  if (place.image_url && place.image_url.includes('images.pexels.com')) {
+    return place.image_url;
+  }
+
   return fetchPlaceImage(
     place.id,
     place.name,

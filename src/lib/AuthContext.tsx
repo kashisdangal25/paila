@@ -136,34 +136,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Check for demo session first
-    const demoSession = localStorage.getItem('paila_demo_session');
-    if (demoSession) {
-      try {
-        const parsed = JSON.parse(demoSession);
-        if (parsed.type === 'traveler') {
-          setProfile(DEMO_TRAVELER);
-          setIsDemo(true);
-          setLoading(false);
-          return;
-        } else if (parsed.type === 'vendor') {
-          setProfile(DEMO_VENDOR);
-          setVendor(DEMO_VENDOR_PROFILE);
-          setIsDemo(true);
-          setLoading(false);
-          return;
-        }
-      } catch {
-        localStorage.removeItem('paila_demo_session');
-      }
-    }
-
+    // Check for real Supabase session first (real auth takes priority over demo)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) console.error('Error getting session:', error);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => fetchProfile(session.user.id), 500);
+        fetchProfile(session.user.id);
+      } else {
+        // Only check demo session if no real session exists
+        const demoSession = localStorage.getItem('paila_demo_session');
+        if (demoSession) {
+          try {
+            const parsed = JSON.parse(demoSession);
+            if (parsed.type === 'traveler') {
+              setProfile(DEMO_TRAVELER);
+              setIsDemo(true);
+            } else if (parsed.type === 'vendor') {
+              setProfile(DEMO_VENDOR);
+              setVendor(DEMO_VENDOR_PROFILE);
+              setIsDemo(true);
+            }
+          } catch {
+            localStorage.removeItem('paila_demo_session');
+          }
+        }
       }
       setLoading(false);
     });
@@ -173,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        setTimeout(() => fetchProfile(session.user.id), 500);
+        fetchProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setVendor(null);
@@ -215,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data.user && data.session) {
-      setTimeout(() => fetchProfile(data.user!.id), 1000);
+      fetchProfile(data.user.id);
     }
 
     return { error: null };

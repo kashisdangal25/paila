@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  BookOpen, Plus, MapPin, Send, Heart, MessageCircle, Loader2, X, Camera, ChevronRight, User
+  BookOpen, Plus, MapPin, Send, Heart, MessageCircle, Loader2, X, Camera, ChevronRight, User, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../lib/AuthContext';
 import { useThemeColors } from '../../lib/ThemeContext';
@@ -72,6 +72,9 @@ export function JournalTab() {
   const [entryText, setEntryText] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [replyText, setReplyText] = useState<Record<string, string>>({});
 
@@ -139,12 +142,17 @@ export function JournalTab() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File must be less than 10MB');
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setUploadError(`File must be less than ${isVideo ? '50MB' : '10MB'}`);
       return;
     }
 
+    setUploadError(null);
     setMediaFile(file);
+    setMediaType(isVideo ? 'video' : 'image');
     const reader = new FileReader();
     reader.onloadend = () => {
       setMediaPreview(reader.result as string);
@@ -156,6 +164,7 @@ export function JournalTab() {
     if (!entryText.trim() || !user) return;
 
     setSaving(true);
+    setUploadError(null);
 
     try {
       let mediaUrl: string | null = null;
@@ -163,19 +172,33 @@ export function JournalTab() {
       // Upload media if provided
       if (mediaFile) {
         const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `journal-${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `journal/${fileName}`;
+        const fileName = `journal-${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/journal/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        // Simulate progress while uploading (Supabase JS v2 doesn't support progress callbacks)
+        setUploadProgress(10);
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 15, 90));
+        }, 300);
+
+        const { error: uploadErr } = await supabase.storage
           .from('media')
-          .upload(filePath, mediaFile);
+          .upload(filePath, mediaFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('media')
-            .getPublicUrl(filePath);
-          mediaUrl = urlData.publicUrl;
+        clearInterval(progressInterval);
+
+        if (uploadErr) {
+          throw new Error(`Upload failed: ${uploadErr.message}`);
         }
+
+        setUploadProgress(100);
+        const { data: urlData } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+        mediaUrl = urlData.publicUrl;
       }
 
       const { error: insertError } = await supabase
@@ -197,13 +220,15 @@ export function JournalTab() {
       setSelectedCategory('Adventure');
       setMediaFile(null);
       setMediaPreview(null);
+      setMediaType(null);
+      setUploadProgress(0);
       setShowNewEntry(false);
 
       // Refresh entries
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving entry:', err);
-      alert('Failed to save entry. Please try again.');
+      setUploadError(err.message || 'Failed to save entry. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -347,9 +372,13 @@ export function JournalTab() {
                 </label>
                 {mediaPreview ? (
                   <div className="relative rounded-xl overflow-hidden">
-                    <img src={mediaPreview} alt="Preview" className="w-full h-48 object-cover" />
+                    {mediaType === 'video' ? (
+                      <video src={mediaPreview} controls className="w-full h-48 object-cover" />
+                    ) : (
+                      <img src={mediaPreview} alt="Preview" className="w-full h-48 object-cover" />
+                    )}
                     <button
-                      onClick={() => { setMediaFile(null); setMediaPreview(null); }}
+                      onClick={() => { setMediaFile(null); setMediaPreview(null); setMediaType(null); }}
                       className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70"
                     >
                       <X className="w-4 h-4" />
@@ -399,6 +428,24 @@ export function JournalTab() {
                 />
               </div>
 
+              {/* Upload Progress */}
+              {saving && uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="w-full bg-stone-200 dark:bg-forest-700 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-forest-600 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+
+              {/* Upload Error */}
+              {uploadError && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
@@ -420,7 +467,7 @@ export function JournalTab() {
                   {saving ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Posting...
+                      {uploadProgress > 0 && uploadProgress < 100 ? `Uploading ${uploadProgress}%` : 'Posting...'}
                     </span>
                   ) : (
                     'Post Entry'
@@ -508,11 +555,19 @@ export function JournalTab() {
               {/* Media */}
               {entry.media_url && (
                 <div className="aspect-video">
-                  <img
-                    src={entry.media_url}
-                    alt="Journal media"
-                    className="w-full h-full object-cover"
-                  />
+                  {entry.media_url.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
+                    <video
+                      src={entry.media_url}
+                      controls
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={entry.media_url}
+                      alt="Journal media"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               )}
 
