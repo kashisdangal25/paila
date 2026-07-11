@@ -543,7 +543,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
             {[
               {
                 name: 'Nima Sherpa',
-                avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
+                avatar: 'https://images.pexels.com/photos/1681000/pexels-photo-1681000.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Everest', 'High Altitude', 'Mountaineering'],
                 languages: 'English, Nepali, Tibetan',
                 rating: 4.9,
@@ -552,7 +552,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
               },
               {
                 name: 'Pemba Tamang',
-                avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200',
+                avatar: 'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Annapurna Circuit', 'Cultural Tours'],
                 languages: 'English, Nepali, Hindi, German',
                 rating: 4.8,
@@ -561,7 +561,7 @@ export default function LandingPage({ openAuthModal, showToast }: LandingPagePro
               },
               {
                 name: 'Dorje Lama',
-                avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200',
+                avatar: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=200',
                 specialties: ['Langtang Valley', 'Wildlife', 'Day Hikes'],
                 languages: 'English, Nepali, French',
                 rating: 4.9,

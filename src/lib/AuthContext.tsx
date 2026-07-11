@@ -67,6 +67,7 @@ interface AuthContextType {
   loading: boolean;
   userType: UserType;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signUp: (data: SignUpData) => Promise<{ error: Error | null; needsConfirmation?: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -159,8 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error?.message === 'Invalid login credentials') {
-      return { error: new Error('Wrong email or password. Please try again.') as Error };
+      return { error: new Error('Invalid email or password. Please check your credentials.') as Error };
     }
+    return { error: error as Error | null };
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
     return { error: error as Error | null };
   }, []);
 
@@ -241,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     userType,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     resetPassword,

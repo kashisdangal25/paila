@@ -238,3 +238,12 @@
     aspect-ratio: 16/9;
   }
 }
+
+/* Remove any Bolt-injected branding/overlays */
+[id*="bolt"], [class*="bolt-badge"], [class*="bolt-watermark"],
+[class*="made-in-bolt"], [class*="bolt-overlay"], [class*="bolt-banner"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

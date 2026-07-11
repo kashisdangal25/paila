@@ -10,7 +10,7 @@ import { cn } from '../../lib/utils';
 import { DestinationDetail } from './DestinationDetail';
 import { getPlaceImage } from '../../lib/imageUtils';
 
-const categories = ['All', 'Trekking', 'Hiking', 'Lake', 'Wildlife', 'Adventure', 'Cultural', 'Heritage', 'Nature', 'Pilgrimage'];
+const categories = ['All', 'Trekking', 'Hiking', 'Lake', 'Wildlife', 'Adventure', 'Cultural', 'Heritage', 'Nature', 'Pilgrimage', 'Hidden Gems'];
 
 // Helper component for async place images
 function PlaceImage({ place, className }: { place: any; className?: string }) {
@@ -56,7 +56,7 @@ const budgetRanges = [
   { id: 'medium', label: 'Mid-Range (NPR 2,000-10,000)', min: 2000, max: 10000 },
   { id: 'high', label: 'Premium (NPR 10,000+)', min: 10000, max: 1000000 },
 ];
-const sortOptions = ['Popular', 'Rating', 'Name', 'Budget'];
+const sortOptions = ['Popular', 'Rating', 'Distance', 'Budget'];
 
 export function DiscoverTab() {
   const { t } = useI18n();
@@ -117,23 +117,36 @@ export function DiscoverTab() {
 
   const filteredDestinations = destinations
     .filter((d) => {
-      const matchesSearch = !search ||
-        d.name.toLowerCase().includes(search.toLowerCase()) ||
-        d.region?.toLowerCase().includes(search.toLowerCase()) ||
-        d.category?.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = activeCategory === 'All' || d.category === activeCategory;
+      const q = search.toLowerCase();
+      const tags = [
+        ...(d.wildlife || []),
+        ...(d.local_foods || []),
+        ...(d.best_months || []),
+        ...(d.nearby_places || []),
+      ].join(' ').toLowerCase();
+      const matchesSearch = !q ||
+        d.name.toLowerCase().includes(q) ||
+        d.region?.toLowerCase().includes(q) ||
+        d.category?.toLowerCase().includes(q) ||
+        tags.includes(q);
+      const matchesCategory = activeCategory === 'All' ||
+        (activeCategory === 'Hidden Gems' ? d.featured === false : d.category === activeCategory);
       const matchesDifficulty = difficultyFilter === 'All' || d.difficulty === difficultyFilter;
+      const range = budgetRanges.find(b => b.id === budgetFilter)!;
       const matchesBudget = budgetFilter === 'all' ||
-        ((d.budget_min || 0) >= budgetRanges.find(b => b.id === budgetFilter)?.min! &&
-         (d.budget_max || 1000000) <= budgetRanges.find(b => b.id === budgetFilter)?.max!);
-      const matchesHiddenGem = !showHiddenGemsOnly || d.is_hidden_gem === true;
+        ((d.budget_max || 0) >= range.min && (d.budget_min || 1000000) <= range.max);
+      const matchesHiddenGem = !showHiddenGemsOnly || d.featured === false;
       return matchesSearch && matchesCategory && matchesDifficulty && matchesBudget && matchesHiddenGem;
     })
     .sort((a, b) => {
       if (sortBy === 'Popular') return (b.review_count || 0) - (a.review_count || 0);
       if (sortBy === 'Rating') return (b.rating || 0) - (a.rating || 0);
-      if (sortBy === 'Name') return a.name.localeCompare(b.name);
       if (sortBy === 'Budget') return (a.budget_min || 0) - (b.budget_min || 0);
+      if (sortBy === 'Distance') {
+        const distA = a.latitude && a.longitude ? Math.sqrt(Math.pow(a.latitude - 28.0, 2) + Math.pow(a.longitude - 84.0, 2)) : 999;
+        const distB = b.latitude && b.longitude ? Math.sqrt(Math.pow(b.latitude - 28.0, 2) + Math.pow(b.longitude - 84.0, 2)) : 999;
+        return distA - distB;
+      }
       return 0;
     });
 

@@ -1,623 +1,526 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Mountain,
-  ArrowRight,
-  Check,
-  MapPin,
-  Star,
-  Upload,
-  X,
-  Loader2,
-  Rocket,
+  Store, User, Phone, Mail, MapPin, FileText, Camera, DollarSign, Calendar,
+  Check, ChevronRight, ChevronLeft, Loader2, X, Upload, Mountain, Languages, Briefcase
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabase';
-
-// Types
-type BusinessType = 'guide' | 'homestay' | 'transport' | 'cafe' | 'hotel' | 'tour_operator' | 'rental' | 'other';
-type OnboardingStep = 1 | 2 | 3 | 'success';
-
-interface VendorData {
-  businessType: BusinessType | '';
-  businessName: string;
-  price: string;
-  priceUnit: string;
-  province: string;
-  district: string;
-  city: string;
-  coverPhoto: string;
-  description: string;
-  phone: string;
-  whatsapp: string;
-  paymentMethod: 'esewa' | 'khalti' | 'cash' | '';
-  paymentId: string;
-}
-
-const BUSINESS_TYPES: Array<{ id: BusinessType; icon: string; label: string }> = [
-  { id: 'guide', icon: '🧭', label: 'Licensed Guide' },
-  { id: 'homestay', icon: '🏡', label: 'Homestay / Guesthouse' },
-  { id: 'transport', icon: '🚌', label: 'Transport / Jeep' },
-  { id: 'cafe', icon: '☕', label: 'Café / Restaurant' },
-  { id: 'hotel', icon: '🏨', label: 'Hotel / Lodge' },
-  { id: 'tour_operator', icon: '🎒', label: 'Tour Operator' },
-  { id: 'rental', icon: '🛍', label: 'Rental Service' },
-  { id: 'other', icon: '🌿', label: 'Other' },
-];
-
-const PROVINCES = ['Koshi', 'Madhesh', 'Bagmati', 'Gandaki', 'Lumbini', 'Karnali', 'Sudurpashchim'];
-
-const DISTRICTS_BY_PROVINCE: Record<string, string[]> = {
-  'Koshi': ['Bhojpur', 'Dhankuta', 'Ilam', 'Jhapa', 'Khotang', 'Morang', 'Okhaldhunga', 'Panchthar', 'Sankhuwasabha', 'Solukhumbu', 'Sunsari', 'Taplejung', 'Terhathum', 'Udayapur'],
-  'Madhesh': ['Bara', 'Dhanusha', 'Mahottari', 'Parsa', 'Rautahat', 'Sarlahi', 'Saptari', 'Siraha'],
-  'Bagmati': ['Bhaktapur', 'Chitwan', 'Dhading', 'Dolakha', 'Kathmandu', 'Kavrepalanchok', 'Lalitpur', 'Makwanpur', 'Nuwakot', 'Ramechhap', 'Rasuwa', 'Sindhulpalchok', 'Sindhuli'],
-  'Gandaki': ['Baglung', 'Gorkha', 'Kaski', 'Lamjung', 'Manang', 'Mustang', 'Myagdi', 'Nawalpur', 'Parbat', 'Syangja', 'Tanahu'],
-  'Lumbini': ['Arghakhanchi', 'Banke', 'Bardiya', 'Dang', 'Gulmi', 'Kapilvastu', 'Nawalparasi East', 'Palpa', 'Pyuthan', 'Rolpa', 'Rupandehi', 'Salyan'],
-  'Karnali': ['Dailekh', 'Dolpa', 'Humla', 'Jajarkot', 'Jumla', 'Kalikot', 'Mugu', 'Rukum West', 'Salyan', 'Surkhet'],
-  'Sudurpashchim': ['Achham', 'Baitadi', 'Bajhang', 'Bajura', 'Dadeldhura', 'Darchula', 'Doti', 'Kailali', 'Kanchanpur'],
-};
-
-const PRICE_UNITS = ['day', 'trip', 'hour', 'night', 'person', 'item'];
-
-const PLACEHOLDER_IMAGES: Record<BusinessType, string> = {
-  guide: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-  homestay: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  transport: 'https://images.pexels.com/photos-3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  cafe: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  hotel: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  tour_operator: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800',
-  rental: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=800',
-  other: 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=800',
-};
-
-const initialData: VendorData = {
-  businessType: '',
-  businessName: '',
-  price: '',
-  priceUnit: 'day',
-  province: '',
-  district: '',
-  city: '',
-  coverPhoto: '',
-  description: '',
-  phone: '',
-  whatsapp: '',
-  paymentMethod: '',
-  paymentId: '',
-
-};
+import { cn } from '../lib/utils';
 
 interface VendorOnboardingProps {
   onComplete: () => void;
-  onSkip?: () => void;
+  onSkip: () => void;
 }
+
+const BUSINESS_TYPES = [
+  { id: 'guide', label: 'Guide', emoji: '🧭' },
+  { id: 'homestay', label: 'Homestay', emoji: '🏡' },
+  { id: 'transport', label: 'Transport', emoji: '🚙' },
+  { id: 'cafe', label: 'Cafe', emoji: '☕' },
+  { id: 'rental', label: 'Rental', emoji: '🎒' },
+  { id: 'agency', label: 'Agency', emoji: '🏛️' },
+];
+
+const PROVINCES = ['Koshi', 'Madhesh', 'Bagmati', 'Gandaki', 'Lumbini', 'Karnali', 'Sudurpashchim'];
+const DISTRICTS: Record<string, string[]> = {
+  Koshi: ['Taplejung', 'Sankhuwasabha', 'Solukhumbu', 'Bhojpur', 'Dhankuta', 'Terhathum', 'Morang', 'Sunsari', 'Ilam', 'Jhapa', 'Panchthar', 'Udayapur', 'Khotang'],
+  Madhesh: ['Sarlahi', 'Dhanusha', 'Mahottari', 'Saptari', 'Siraha', 'Bara', 'Parsa', 'Rautahat'],
+  Bagmati: ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Dhading', 'Nuwakot', 'Rasuwa', 'Sindhupalchok', 'Kavrepalanchok', 'Makwanpur', 'Ramechhap', 'Sindhuli', 'Chitwan', 'Dolakha', 'Gorkha', 'Lamjung', 'Tanahun', 'Nawalpur'],
+  Gandaki: ['Kaski', 'Syangja', 'Parbat', 'Baglung', 'Myagdi', 'Mustang', 'Manang', 'Gorkha', 'Lamjung', 'Tanahun', 'Nawalpur'],
+  Lumbini: ['Rupandehi', 'Kapilvastu', 'Dang', 'Pyuthan', 'Rolpa', 'Arghakhanchi', 'Gulmi', 'Palpa', 'Banke', 'Bardiya', 'Surkhet', 'Dailekh', 'Jajarkot'],
+  Karnali: ['Jumla', 'Kalikot', 'Mugu', 'Humla', 'Dolpa', 'Surkhet', 'Dailekh', 'Jajarkot', 'Rukum', 'Salyan'],
+  Sudurpashchim: ['Dadeldhura', 'Baitadi', 'Darchula', 'Kanchanpur', 'Kailali', 'Doti', 'Achham', 'Bajura', 'Bajhang'],
+};
+
+const LANGUAGES = ['English', 'Nepali', 'Hindi', 'Chinese', 'Japanese', 'Korean', 'French', 'German', 'Spanish', 'Sherpa', 'Tamang', 'Gurung', 'Magar', 'Newari', 'Thakali'];
+
+const NATURE_COVER = 'https://images.pexels.com/photos/4194617/pexels-photo-4194617.jpeg?auto=compress&cs=tinysrgb&w=1200';
 
 export default function VendorOnboarding({ onComplete, onSkip }: VendorOnboardingProps) {
   const { user, profile } = useAuth();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>(1);
-  const [data, setData] = useState<VendorData>(initialData);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize with user profile data
-  useEffect(() => {
-    if (profile) {
-      setData(prev => ({
-        ...prev,
-        phone: profile.phone || '',
-      }));
-    }
-  }, [profile]);
+  // Step 1: Business type
+  const [businessType, setBusinessType] = useState('');
+  // Step 2: Business details
+  const [businessName, setBusinessName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  // Step 3: Location
+  const [address, setAddress] = useState('');
+  const [district, setDistrict] = useState('');
+  const [province, setProvince] = useState('');
+  const [gpsLat, setGpsLat] = useState<number | null>(null);
+  const [gpsLng, setGpsLng] = useState<number | null>(null);
+  // Step 4: Description & experience
+  const [description, setDescription] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [servicesOffered, setServicesOffered] = useState<string[]>([]);
+  // Step 5: Photos
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [gallery, setGallery] = useState<File[]>([]);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [logoPreview, setLogoPreview] = useState('');
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  // Step 6: Pricing
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [dailyRate, setDailyRate] = useState('');
+  const [nightlyRate, setNightlyRate] = useState('');
+  const [packageRate, setPackageRate] = useState('');
+  // Step 7: Documents
+  const [docFiles, setDocFiles] = useState<Record<string, File | null>>({});
+  // Step 8: Availability
+  const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  // Step 9: Review & submit
 
-  // Load/save from localStorage
+  const profilePhotoRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    const saved = localStorage.getItem('vendor_onboarding');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setData(prev => ({ ...prev, ...parsed }));
-        if (parsed._step) setCurrentStep(parsed._step);
-      } catch {}
+    // Initialize availability for next 30 days
+    const days: Record<string, boolean> = {};
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days[d.toISOString().split('T')[0]] = true;
     }
+    setAvailability(days);
   }, []);
 
-  const saveProgress = useCallback(() => {
-    localStorage.setItem('vendor_onboarding', JSON.stringify({ ...data, _step: currentStep }));
-  }, [data, currentStep]);
+  const TOTAL_STEPS = 9;
 
-  // Districts for selected province
-  const districts = data.province ? DISTRICTS_BY_PROVINCE[data.province] || [] : [];
-
-  // Validation
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (step === 1) {
-      if (!data.businessType) newErrors.businessType = 'Select your business type';
-      if (!data.businessName.trim()) newErrors.businessName = 'Business name required';
-      if (!data.price) newErrors.price = 'Price required';
-      if (!data.province) newErrors.province = 'Province required';
-      if (!data.district) newErrors.district = 'District required';
-    } else if (step === 2) {
-      if (!data.phone.trim()) newErrors.phone = 'Phone number required';
-    } else if (step === 3) {
-      if (!data.paymentMethod) newErrors.paymentMethod = 'Select payment method';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const goNext = () => {
-    saveProgress();
-
-    if (currentStep === 1 && validateStep(1)) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && validateStep(2)) {
-      setCurrentStep(3);
-    } else if (currentStep === 3 && validateStep(3)) {
-      handleSubmit();
+  const canProceed = (): boolean => {
+    switch (step) {
+      case 1: return !!businessType;
+      case 2: return !!businessName.trim() && !!contactPerson.trim() && !!phone.trim() && !!email.trim();
+      case 3: return !!address.trim() && !!district && !!province;
+      case 4: return !!description.trim();
+      case 5: return true; // Photos optional
+      case 6: return true; // Pricing optional
+      case 7: return true; // Documents optional
+      case 8: return true;
+      case 9: return true;
+      default: return false;
     }
   };
 
-  const goBack = () => {
-    if (currentStep === 2) setCurrentStep(1);
-    else if (currentStep === 3) setCurrentStep(2);
-  };
+  function toggleLanguage(lang: string) {
+    setSelectedLanguages(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]);
+  }
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+  function toggleService(svc: string) {
+    setServicesOffered(prev => prev.includes(svc) ? prev.filter(s => s !== svc) : [...prev, svc]);
+  }
 
+  function handleProfilePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (!f) return;
+    setProfilePhoto(f); setProfilePhotoPreview(URL.createObjectURL(f));
+  }
+
+  function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (!f) return;
+    setLogo(f); setLogoPreview(URL.createObjectURL(f));
+  }
+
+  function handleGallery(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (gallery.length + files.length > 10) { setError('Max 10 gallery photos'); return; }
+    setGallery(prev => [...prev, ...files]);
+    setGalleryPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+  }
+
+  function removeGalleryPhoto(idx: number) {
+    setGallery(prev => prev.filter((_, i) => i !== idx));
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function toggleAvailabilityDay(date: string) {
+    setAvailability(prev => ({ ...prev, [date]: !prev[date] }));
+  }
+
+  async function uploadFile(file: File, path: string): Promise<string> {
+    const { error: upErr } = await supabase.storage.from('media').upload(path, file, { cacheControl: '3600', upsert: false });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+    const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
+    return urlData.publicUrl;
+  }
+
+  async function handleSubmit() {
+    if (!user) return;
+    setSaving(true); setError(null);
     try {
-      if (user?.id) {
-        const coverPhoto = data.coverPhoto || PLACEHOLDER_IMAGES[data.businessType as BusinessType] || PLACEHOLDER_IMAGES.other;
+      const userId = user.id;
+      let profilePhotoUrl = '';
+      let logoUrl = '';
+      let galleryUrls: string[] = [];
 
-        // Create/update vendor record
-        const vendorRecord = {
-          user_id: user.id,
-          business_name: data.businessName,
-          business_type: data.businessType,
-          location: data.city || data.district,
-          district: data.district,
-          description: data.description || `${data.businessName} - ${data.businessType} in ${data.district}`,
-          phone: data.phone,
-          email: profile?.email || '',
-          status: 'approved', // INSTANT APPROVAL!
-        };
-
-        const { error: vendorError } = await supabase
-          .from('vendors')
-          .upsert(vendorRecord, { onConflict: 'user_id' });
-
-        if (vendorError) throw vendorError;
-
-        // Update profile
-        await supabase
-          .from('profiles')
-          .update({ vendor_status: 'approved' })
-          .eq('id', user.id);
-
-        // Clear onboarding state
-        localStorage.removeItem('vendor_onboarding');
-        localStorage.setItem('vendor_onboarding_complete', 'true');
-
-        setCurrentStep('success');
+      if (profilePhoto) profilePhotoUrl = await uploadFile(profilePhoto, `${userId}/vendor/profile-${Date.now()}.${profilePhoto.name.split('.').pop()}`);
+      if (logo) logoUrl = await uploadFile(logo, `${userId}/vendor/logo-${Date.now()}.${logo.name.split('.').pop()}`);
+      for (let i = 0; i < gallery.length; i++) {
+        const url = await uploadFile(gallery[i], `${userId}/vendor/gallery-${Date.now()}-${i}.${gallery[i].name.split('.').pop()}`);
+        galleryUrls.push(url);
       }
+
+      const docUrls: Record<string, string> = {};
+      for (const [docType, file] of Object.entries(docFiles)) {
+        if (file) docUrls[docType] = await uploadFile(file, `${userId}/vendor/docs/${docType}-${Date.now()}.${file.name.split('.').pop()}`);
+      }
+
+      const pricing = {
+        hourly: hourlyRate ? parseFloat(hourlyRate) : null,
+        daily: dailyRate ? parseFloat(dailyRate) : null,
+        nightly: nightlyRate ? parseFloat(nightlyRate) : null,
+        package: packageRate ? parseFloat(packageRate) : null,
+      };
+
+      const vendorData = {
+        user_id: userId,
+        business_name: businessName,
+        business_type: businessType,
+        contact_person: contactPerson,
+        phone,
+        email,
+        location: address,
+        district,
+        province,
+        gps_lat: gpsLat,
+        gps_lng: gpsLng,
+        description,
+        years_experience: yearsExperience ? parseInt(yearsExperience) : null,
+        languages: selectedLanguages,
+        services_offered: servicesOffered,
+        profile_photo_url: profilePhotoUrl || null,
+        logo_url: logoUrl || null,
+        gallery_urls: galleryUrls.length > 0 ? galleryUrls : null,
+        pricing,
+        documents: Object.keys(docUrls).length > 0 ? docUrls : null,
+        availability,
+        rating: 0,
+        review_count: 0,
+        cover_photo_url: NATURE_COVER,
+        status: 'approved',
+      };
+
+      const { error: upsertErr } = await supabase
+        .from('vendors')
+        .upsert(vendorData, { onConflict: 'user_id' });
+      if (upsertErr) throw upsertErr;
+
+      await supabase.from('profiles').update({ vendor_status: 'approved' }).eq('id', userId);
+      onComplete();
     } catch (err: any) {
-      console.error('Error saving vendor:', err);
-      setErrors({ submit: err.message || 'Something went wrong. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      setError(err.message || 'Failed to submit registration');
+    } finally { setSaving(false); }
+  }
 
-  // Step 1: The Basics
-  const renderStep1 = () => (
-    <div className="animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-sm text-forest-600 font-medium mb-1">Step 1 of 3</p>
-        <h2 className="text-xl font-display font-bold text-forest-700">The Basics</h2>
-        <p className="text-sm text-stone-500">What do you offer?</p>
-      </div>
+  const inputClass = 'w-full px-4 py-2.5 rounded-xl border-2 border-stone-200 focus:border-forest-500 focus:ring-2 focus:ring-forest-200 focus:outline-none transition-all bg-white text-stone-800 placeholder:text-stone-400';
 
-      {/* Business Type */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-stone-700 mb-2">Business Type *</label>
-        <div className="grid grid-cols-2 gap-2">
-          {BUSINESS_TYPES.map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => setData({ ...data, businessType: type.id })}
-              className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left ${
-                data.businessType === type.id
-                  ? 'border-forest-500 bg-forest-50'
-                  : 'border-stone-200 hover:border-forest-300'
-              }`}
-            >
-              <span className="text-xl">{type.icon}</span>
-              <span className="text-sm font-medium">{type.label}</span>
-            </button>
-          ))}
-        </div>
-        {errors.businessType && <p className="text-xs text-red-500 mt-1">{errors.businessType}</p>}
-      </div>
-
-      {/* Business Name */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">Business Name *</label>
-        <input
-          type="text"
-          value={data.businessName}
-          onChange={(e) => setData({ ...data, businessName: e.target.value })}
-          placeholder="e.g. Nima Sherpa Trekking"
-          className="input w-full"
-        />
-        {errors.businessName && <p className="text-xs text-red-500 mt-1">{errors.businessName}</p>}
-      </div>
-
-      {/* Price */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">Your Price *</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 text-sm">NPR</span>
-            <input
-              type="number"
-              value={data.price}
-              onChange={(e) => setData({ ...data, price: e.target.value })}
-              placeholder="3500"
-              className="input w-full pl-14"
-            />
-          </div>
-          <select
-            value={data.priceUnit}
-            onChange={(e) => setData({ ...data, priceUnit: e.target.value })}
-            className="input w-28"
-          >
-            {PRICE_UNITS.map((u) => (
-              <option key={u} value={u}>per {u}</option>
-            ))}
-          </select>
-        </div>
-        {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
-      </div>
-
-      {/* Location */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">Location *</label>
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            value={data.province}
-            onChange={(e) => setData({ ...data, province: e.target.value, district: '' })}
-            className="input"
-          >
-            <option value="">Province</option>
-            {PROVINCES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-          <select
-            value={data.district}
-            onChange={(e) => setData({ ...data, district: e.target.value })}
-            className="input"
-            disabled={!data.province}
-          >
-            <option value="">District</option>
-            {districts.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-        <input
-          type="text"
-          value={data.city}
-          onChange={(e) => setData({ ...data, city: e.target.value })}
-          placeholder="City/Village (optional)"
-          className="input w-full mt-2"
-        />
-        {(errors.province || errors.district) && (
-          <p className="text-xs text-red-500 mt-1">{errors.province || errors.district}</p>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex gap-3 mt-8">
-        <button onClick={goBack} className="btn-secondary flex-1 py-3">
-          Back
-        </button>
-        <button onClick={goNext} className="btn-primary flex-1 py-3">
-          Next
-          <ArrowRight className="w-4 h-4 ml-1 inline" />
-        </button>
-      </div>
-    </div>
-  );
-
-  // Step 2: Make it shine
-  const renderStep2 = () => (
-    <div className="animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-sm text-forest-600 font-medium mb-1">Step 2 of 3</p>
-        <h2 className="text-xl font-display font-bold text-forest-700">Make it Shine</h2>
-        <p className="text-sm text-stone-500">Add photo & description</p>
-      </div>
-
-      {/* Cover Photo */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-2">Cover Photo</label>
-        {data.coverPhoto ? (
-          <div className="relative aspect-video rounded-xl overflow-hidden">
-            <img src={data.coverPhoto} alt="Cover" className="w-full h-full object-cover" />
-            <button
-              onClick={() => setData({ ...data, coverPhoto: '' })}
-              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <label className="block aspect-video rounded-xl border-2 border-dashed border-stone-300 cursor-pointer hover:border-forest-400 transition-colors">
-            <div className="h-full flex flex-col items-center justify-center text-stone-400">
-              <Upload className="w-8 h-8 mb-2" />
-              <p className="text-sm">Add a photo</p>
-              <p className="text-xs">or skip for now</p>
-            </div>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setData({ ...data, coverPhoto: reader.result as string });
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-          </label>
-        )}
-        <p className="text-xs text-stone-500 mt-1">A great photo gets 3x more views!</p>
-      </div>
-
-      {/* Description */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">About your service</label>
-        <textarea
-          value={data.description}
-          onChange={(e) => setData({ ...data, description: e.target.value })}
-          placeholder="Tell travelers what makes your service special..."
-          rows={3}
-          className="input w-full resize-none"
-          maxLength={200}
-        />
-        <p className="text-xs text-stone-500 text-right">{data.description.length}/200</p>
-      </div>
-
-      {/* Phone */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">Contact Number *</label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500">+977</span>
-          <input
-            type="tel"
-            value={data.phone}
-            onChange={(e) => setData({ ...data, phone: e.target.value })}
-            placeholder="9812345678"
-            className="input w-full pl-14"
-          />
-        </div>
-        {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-      </div>
-
-      {/* WhatsApp */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-stone-700 mb-1">WhatsApp (optional)</label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500">+977</span>
-          <input
-            type="tel"
-            value={data.whatsapp}
-            onChange={(e) => setData({ ...data, whatsapp: e.target.value })}
-            placeholder="9812345678"
-            className="input w-full pl-14"
-          />
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex gap-3 mt-8">
-        <button onClick={goBack} className="btn-secondary flex-1 py-3">
-          Back
-        </button>
-        <button onClick={goNext} className="btn-primary flex-1 py-3">
-          Next
-          <ArrowRight className="w-4 h-4 ml-1 inline" />
-        </button>
-      </div>
-    </div>
-  );
-
-  // Step 3: Get Paid
-  const renderStep3 = () => (
-    <div className="animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-sm text-forest-600 font-medium mb-1">Step 3 of 3</p>
-        <h2 className="text-xl font-display font-bold text-forest-700">Get Paid</h2>
-        <p className="text-sm text-stone-500">How do you receive payments?</p>
-      </div>
-
-      {/* Payment Methods */}
-      <div className="mb-6 space-y-2">
-        {[
-          { id: 'esewa', icon: '📱', label: 'eSewa' },
-          { id: 'khalti', icon: '💳', label: 'Khalti' },
-          { id: 'cash', icon: '💵', label: 'Cash on arrival' },
-        ].map((pm) => (
-          <button
-            key={pm.id}
-            type="button"
-            onClick={() => setData({ ...data, paymentMethod: pm.id as any })}
-            className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-              data.paymentMethod === pm.id
-                ? 'border-forest-500 bg-forest-50'
-                : 'border-stone-200 hover:border-forest-300'
-            }`}
-          >
-            <span className="text-2xl">{pm.icon}</span>
-            <span className="font-medium">{pm.label}</span>
-          </button>
-        ))}
-      </div>
-      {errors.paymentMethod && <p className="text-xs text-red-500 mb-4">{errors.paymentMethod}</p>}
-
-      {/* Payment ID */}
-      {data.paymentMethod && data.paymentMethod !== 'cash' && (
-        <div className="mb-4 animate-fade-in">
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            {data.paymentMethod === 'esewa' ? 'eSewa ID' : 'Khalti ID'} *
-          </label>
-          <input
-            type="text"
-            value={data.paymentId}
-            onChange={(e) => setData({ ...data, paymentId: e.target.value })}
-            placeholder={data.paymentMethod === 'esewa' ? '9812345678' : '9812345678'}
-            className="input w-full"
-          />
-        </div>
-      )}
-
-      {/* Submit */}
-      <div className="flex gap-3 mt-8">
-        <button onClick={goBack} className="btn-secondary flex-1 py-3">
-          Back
-        </button>
-        <button
-          onClick={goNext}
-          disabled={isSubmitting}
-          className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Publishing...
-            </>
-          ) : (
-            <>
-              <Rocket className="w-5 h-5" />
-              Go Live Now!
-            </>
-          )}
-        </button>
-      </div>
-
-      {errors.submit && (
-        <p className="text-sm text-red-500 text-center mt-4">{errors.submit}</p>
-      )}
-    </div>
-  );
-
-  // Success Screen
-  const renderSuccess = () => (
-    <div className="text-center animate-fade-in py-4">
-      <div className="w-20 h-20 bg-forest-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <Rocket className="w-10 h-10 text-forest-600" />
-      </div>
-      <h1 className="text-2xl font-display font-bold text-forest-700 mb-2">You're LIVE!</h1>
-      <p className="text-stone-500 mb-6">
-        <strong>{data.businessName}</strong> is now visible to thousands of travelers on Paila right now.
-      </p>
-
-      <div className="bg-forest-50 rounded-xl p-4 mb-6 text-left">
-        <p className="text-sm font-semibold text-forest-700 mb-3">Your listing:</p>
-        <div className="space-y-2 text-sm text-stone-700">
-          <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-forest-500" />
-            <span>Visible on map</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-forest-500" />
-            <span>Searchable by travelers</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-forest-500" />
-            <span>Ready to receive bookings</span>
-          </div>
-        </div>
-      </div>
-
-      <button onClick={onComplete} className="btn-primary w-full py-3.5 text-base">
-        Open My Dashboard
-        <ArrowRight className="w-5 h-5 ml-2 inline" />
-      </button>
-    </div>
-  );
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1: return renderStep1();
-      case 2: return renderStep2();
-      case 3: return renderStep3();
-      case 'success': return renderSuccess();
-      default: return null;
-    }
-  };
+  const stepIcons = [Store, User, MapPin, FileText, Camera, DollarSign, FileText, Calendar, Check];
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 bg-white border-b border-stone-200 px-4 py-3 z-10">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-forest-700 rounded-lg flex items-center justify-center">
-              <Mountain className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-forest-700 rounded-xl flex items-center justify-center">
+              <Mountain className="w-6 h-6 text-white" />
             </div>
-            <span className="font-display font-bold text-forest-700">Paila</span>
+            <span className="font-display text-xl font-bold text-forest-700">Paila Vendor</span>
           </div>
-          {onSkip && currentStep !== 'success' && (
-            <button onClick={onSkip} className="text-xs text-stone-500 hover:text-forest-600">
-              Skip for now
-            </button>
-          )}
+          <button onClick={onSkip} className="text-sm text-stone-500 hover:text-stone-700">Skip for now</button>
         </div>
-      </header>
 
-      {/* Progress bar */}
-      {typeof currentStep === 'number' && (
-        <div className="bg-white px-4 py-3 border-b border-stone-100">
-          <div className="max-w-xl mx-auto flex items-center justify-center gap-3">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step < currentStep
-                      ? 'bg-forest-500 text-white'
-                      : step === currentStep
-                        ? 'bg-forest-500 text-white'
-                        : 'bg-stone-200 text-stone-500'
-                  }`}
-                >
-                  {step < currentStep ? <Check className="w-4 h-4" /> : step}
-                </div>
-                {step < 3 && (
-                  <div className={`w-12 h-1 rounded-full transition-colors ${
-                    step < currentStep ? 'bg-forest-500' : 'bg-stone-200'
-                  }`} />
-                )}
+        {/* Progress */}
+        <div className="flex items-center gap-1 mb-6">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div key={i} className={cn('flex-1 h-2 rounded-full transition-colors', i + 1 <= step ? 'bg-forest-600' : 'bg-stone-200')} />
+          ))}
+        </div>
+        <p className="text-sm text-stone-500 mb-4 text-center">Step {step} of {TOTAL_STEPS}</p>
+
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">{error}</div>}
+
+          {/* Step 1: Business Type */}
+          {step === 1 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">What type of business?</h2>
+              <p className="text-sm text-stone-500">Select your business category</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {BUSINESS_TYPES.map(bt => (
+                  <button key={bt.id} onClick={() => setBusinessType(bt.id)} className={cn('flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all', businessType === bt.id ? 'border-forest-500 bg-forest-50' : 'border-stone-200 hover:border-stone-300')}>
+                    <span className="text-3xl">{bt.emoji}</span>
+                    <span className="text-sm font-medium text-stone-700">{bt.label}</span>
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          {/* Step 2: Business Details */}
+          {step === 2 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Business Details</h2>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Business Name *</label>
+                <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)} className={inputClass} placeholder="e.g., Himalayan Trek Guides" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Contact Person *</label>
+                <input type="text" value={contactPerson} onChange={e => setContactPerson(e.target.value)} className={inputClass} placeholder="Your name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Phone *</label>
+                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className={inputClass} placeholder="+977 98XXXXXXXX" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Email *</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} placeholder="business@email.com" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Location */}
+          {step === 3 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Location</h2>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Address *</label>
+                <input type="text" value={address} onChange={e => setAddress(e.target.value)} className={inputClass} placeholder="Street address" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Province *</label>
+                  <select value={province} onChange={e => { setProvince(e.target.value); setDistrict(''); }} className={inputClass}>
+                    <option value="">Select</option>
+                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">District *</label>
+                  <select value={district} onChange={e => setDistrict(e.target.value)} className={inputClass} disabled={!province}>
+                    <option value="">Select</option>
+                    {(DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">GPS Latitude</label>
+                  <input type="number" step="0.000001" value={gpsLat ?? ''} onChange={e => setGpsLat(e.target.value ? parseFloat(e.target.value) : null)} className={inputClass} placeholder="28.2096" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">GPS Longitude</label>
+                  <input type="number" step="0.000001" value={gpsLng ?? ''} onChange={e => setGpsLng(e.target.value ? parseFloat(e.target.value) : null)} className={inputClass} placeholder="83.9881" />
+                </div>
+              </div>
+              <button onClick={() => { if (navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { setGpsLat(p.coords.latitude); setGpsLng(p.coords.longitude); }); }} className="text-sm text-forest-600 hover:underline">Use my current location</button>
+            </div>
+          )}
+
+          {/* Step 4: Description & Experience */}
+          {step === 4 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">About Your Business</h2>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Description *</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className={cn(inputClass, 'resize-none')} placeholder="Tell travelers about your business..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Years of Experience</label>
+                <input type="number" value={yearsExperience} onChange={e => setYearsExperience(e.target.value)} className={inputClass} placeholder="5" min="0" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Languages Spoken</label>
+                <div className="flex flex-wrap gap-2">
+                  {LANGUAGES.map(l => (
+                    <button key={l} onClick={() => toggleLanguage(l)} className={cn('px-3 py-1.5 rounded-full text-sm font-medium transition-colors', selectedLanguages.includes(l) ? 'bg-forest-600 text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200')}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Services Offered</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Trekking Guide', 'City Tour', 'Transport', 'Accommodation', 'Equipment Rental', 'Photography', 'Cooking', 'Porter Service'].map(s => (
+                    <button key={s} onClick={() => toggleService(s)} className={cn('px-3 py-1.5 rounded-full text-sm font-medium transition-colors', servicesOffered.includes(s) ? 'bg-forest-600 text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200')}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Photos */}
+          {step === 5 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Photos</h2>
+              <p className="text-sm text-stone-500">Upload photos of your business in natural settings</p>
+
+              {/* Profile Photo */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Profile Photo</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-stone-200">
+                    {profilePhotoPreview ? <img src={profilePhotoPreview} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-stone-100"><Camera className="w-6 h-6 text-stone-400" /></div>}
+                  </div>
+                  <button onClick={() => profilePhotoRef.current?.click()} className="px-4 py-2 rounded-xl bg-stone-100 text-stone-700 text-sm font-medium hover:bg-stone-200">Upload</button>
+                  <input ref={profilePhotoRef} type="file" accept="image/*" onChange={handleProfilePhoto} className="hidden" />
+                </div>
+              </div>
+
+              {/* Logo */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Logo</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-stone-200">
+                    {logoPreview ? <img src={logoPreview} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-stone-100"><Briefcase className="w-6 h-6 text-stone-400" /></div>}
+                  </div>
+                  <button onClick={() => logoRef.current?.click()} className="px-4 py-2 rounded-xl bg-stone-100 text-stone-700 text-sm font-medium hover:bg-stone-200">Upload</button>
+                  <input ref={logoRef} type="file" accept="image/*" onChange={handleLogo} className="hidden" />
+                </div>
+              </div>
+
+              {/* Gallery */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-stone-700">Gallery (up to 10 photos)</label>
+                <div className="flex flex-wrap gap-2">
+                  {galleryPreviews.map((url, i) => (
+                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => removeGalleryPhoto(i)} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/50 text-white"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                  {gallery.length < 10 && (
+                    <button onClick={() => galleryRef.current?.click()} className="w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 hover:bg-stone-50">
+                      <Upload className="w-5 h-5 text-stone-400" />
+                      <span className="text-xs text-stone-400">Add</span>
+                    </button>
+                  )}
+                </div>
+                <input ref={galleryRef} type="file" accept="image/*" multiple onChange={handleGallery} className="hidden" />
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Pricing */}
+          {step === 6 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Pricing</h2>
+              <p className="text-sm text-stone-500">Set your rates in NPR (optional)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Hourly Rate (NPR)</label>
+                  <input type="number" value={hourlyRate} onChange={e => setHourlyRate(e.target.value)} className={inputClass} placeholder="500" min="0" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Daily Rate (NPR)</label>
+                  <input type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} className={inputClass} placeholder="3000" min="0" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Nightly Rate (NPR)</label>
+                  <input type="number" value={nightlyRate} onChange={e => setNightlyRate(e.target.value)} className={inputClass} placeholder="1500" min="0" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">Package Rate (NPR)</label>
+                  <input type="number" value={packageRate} onChange={e => setPackageRate(e.target.value)} className={inputClass} placeholder="15000" min="0" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 7: Documents */}
+          {step === 7 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Documents</h2>
+              <p className="text-sm text-stone-500">Upload your business documents (optional but recommended for verification)</p>
+              {['ID Document', 'License', 'Registration', 'Insurance'].map(docType => (
+                <div key={docType}>
+                  <label className="text-sm font-medium mb-1.5 block text-stone-700">{docType}</label>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setDocFiles(prev => ({ ...prev, [docType]: f })); }}
+                    className="hidden"
+                    id={`doc-${docType}`}
+                  />
+                  <label htmlFor={`doc-${docType}`} className={cn('flex items-center gap-2 p-3 rounded-xl border-2 border-dashed cursor-pointer hover:bg-stone-50', docFiles[docType] ? 'border-forest-500 bg-forest-50' : 'border-stone-200')}>
+                    <Upload className="w-5 h-5 text-stone-400" />
+                    <span className="text-sm text-stone-600">{docFiles[docType] ? docFiles[docType].name : `Upload ${docType}`}</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Step 8: Availability Calendar */}
+          {step === 8 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Availability Calendar</h2>
+              <p className="text-sm text-stone-500">Toggle dates you're available. Click a date to toggle.</p>
+              <div className="grid grid-cols-7 gap-1 max-h-64 overflow-y-auto">
+                {Object.entries(availability).map(([date, available]) => (
+                  <button
+                    key={date}
+                    onClick={() => toggleAvailabilityDay(date)}
+                    className={cn('aspect-square rounded-lg text-xs font-medium transition-colors flex flex-col items-center justify-center', available ? 'bg-forest-600 text-white' : 'bg-stone-100 text-stone-400')}
+                  >
+                    <span>{new Date(date).getDate()}</span>
+                    <span className="text-[10px] opacity-70">{new Date(date).toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 9: Review & Submit */}
+          {step === 9 && (
+            <div className="space-y-4 animate-fade-in">
+              <h2 className="text-xl font-display font-bold text-stone-800">Review & Submit</h2>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-stone-500">Business Type</span><span className="font-medium text-stone-800">{BUSINESS_TYPES.find(b => b.id === businessType)?.label}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Business Name</span><span className="font-medium text-stone-800">{businessName}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Contact</span><span className="font-medium text-stone-800">{contactPerson}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Phone</span><span className="font-medium text-stone-800">{phone}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Location</span><span className="font-medium text-stone-800">{address}, {district}, {province}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Languages</span><span className="font-medium text-stone-800">{selectedLanguages.join(', ') || 'None'}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Services</span><span className="font-medium text-stone-800">{servicesOffered.join(', ') || 'None'}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Gallery Photos</span><span className="font-medium text-stone-800">{gallery.length}</span></div>
+                <div className="flex justify-between"><span className="text-stone-500">Documents</span><span className="font-medium text-stone-800">{Object.keys(docFiles).length}</span></div>
+              </div>
+              <div className="p-3 rounded-xl bg-forest-50 border border-forest-200">
+                <p className="text-sm text-forest-700">By submitting, your vendor account will be approved and you can start receiving bookings.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex gap-3 mt-6">
+            {step > 1 && (
+              <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-1 px-4 py-3 rounded-xl bg-stone-100 text-stone-700 font-medium hover:bg-stone-200 transition-colors">
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+            )}
+            {step < TOTAL_STEPS ? (
+              <button onClick={() => canProceed() && setStep(s => s + 1)} disabled={!canProceed()} className="flex-1 flex items-center justify-center gap-1 px-4 py-3 rounded-xl bg-forest-600 text-white font-medium hover:bg-forest-700 disabled:opacity-50 transition-colors">
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button onClick={handleSubmit} disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-forest-600 text-white font-medium hover:bg-forest-700 disabled:opacity-50 transition-colors">
+                {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><Check className="w-4 h-4" /> Submit for Approval</>}
+              </button>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Content */}
-      <main className="flex-1 flex items-start justify-center px-4 py-6">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-card p-6">
-          {renderStepContent()}
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
